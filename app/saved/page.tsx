@@ -1,0 +1,4 @@
+import Link from 'next/link';import {ChevronRight,TrendingUp} from 'lucide-react';import SavedCalculations from '@/components/saved-calculations';
+export const metadata={title:'저장된 계산 | InvestToolkit',description:'브라우저에 저장한 투자 계산 결과를 다시 확인하고 관리하세요.'};
+export default function Page(){return <main className="calculatorPage"><header className="calcHeader"><div className="wrap"><Link className="brand" href="/"><span className="brandmark"><TrendingUp size={20}/></span><span>Invest<span>Toolkit</span></span></Link><Link href="/calculators">전체 계산기</Link></div></header><section className="savedHero"><div className="wrap"><div className="breadcrumb"><Link href="/">홈</Link><ChevronRight/><b>저장된 계산</b></div><h1>저장된 계산</h1><p>이 브라우저에 저장한 투자 시나리오를 다시 확인하세요.</p></div></section><section className="wrap savedContent"><SavedCalculations/></section></main>}
+
