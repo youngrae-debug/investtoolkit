@@ -1,0 +1,3 @@
+import Link from 'next/link';import {TrendingUp} from 'lucide-react';
+export default function LegalPage({title,updated,children}:{title:string;updated:string;children:React.ReactNode}){return <main className="legalPage"><header className="calcHeader"><div className="wrap"><Link className="brand" href="/"><span className="brandmark"><TrendingUp size={20}/></span><span>Invest<span>Toolkit</span></span></Link><Link href="/">홈으로</Link></div></header><article className="legalArticle"><span>INVESTTOOLKIT POLICY</span><h1>{title}</h1><small>시행일 및 최종 수정일: {updated}</small>{children}</article></main>}
+
