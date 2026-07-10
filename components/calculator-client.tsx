@@ -5,7 +5,7 @@ import type {CalculatorDef} from '@/lib/calculators';
 
 const won=(n:number)=>`${Math.round(n).toLocaleString('ko-KR')}원`;
 const num=(n:number,d=1)=>n.toLocaleString('ko-KR',{maximumFractionDigits:d});
-function calculate(slug:string,v:Record<string,number>){
+export function calculate(slug:string,v:Record<string,number>){
  const m=(v.rate||0)/1200, n=(v.years||0)*12; let main=0,label='계산 결과',items:{label:string;value:string}[]=[];
  if(slug==='compound-interest'){main=v.principal*Math.pow(1+m,n)+v.monthly*(Math.pow(1+m,n)-1)/m;const inv=v.principal+v.monthly*n;label=`${v.years}년 후 예상 자산`;items=[{label:'총 투자원금',value:won(inv)},{label:'예상 수익',value:won(main-inv)}]}
  if(slug==='recurring-investment'){main=v.monthly*(Math.pow(1+m,n)-1)/m;const inv=v.monthly*n;label='예상 최종 자산';items=[{label:'총 납입금',value:won(inv)},{label:'예상 수익',value:won(main-inv)}]}
