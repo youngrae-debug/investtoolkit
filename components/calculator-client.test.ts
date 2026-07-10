@@ -7,5 +7,7 @@ describe('financial calculator formulas',()=>{
  it('calculates deposit maturity amount',()=>expect(calculate('deposit',{principal:50_000_000,rate:3.5,months:12,tax:15.4}).main).toBe(51_480_500));
  it('calculates severance estimate',()=>expect(calculate('severance',{salary:12_000_000,days3m:92,serviceDays:1825}).main).toBeCloseTo(19_565_217.39,0));
  it('never returns a negative required monthly target contribution',()=>expect(calculate('target-asset',{target:100_000_000,current:200_000_000,rate:7,years:10}).main).toBe(0));
+ it('supports a zero percent compound return',()=>expect(calculate('compound-interest',{principal:10_000_000,monthly:500_000,rate:0,years:10}).main).toBe(70_000_000));
+ it('supports a zero percent loan rate',()=>expect(calculate('loan',{principal:120_000_000,rate:0,years:10}).main).toBe(1_000_000));
+ it('supports a zero percent pension return',()=>expect(calculate('pension',{asset:240_000_000,rate:0,years:20}).main).toBe(1_000_000));
 });
-
