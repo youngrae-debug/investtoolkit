@@ -1,5 +1,5 @@
 'use client';
-import {useMemo,useState} from 'react';
+import {useEffect,useMemo,useState} from 'react';
 import {ArrowRight,Bot,Calculator,Info,RotateCcw,Share2,Sparkles,TrendingUp} from 'lucide-react';
 import type {CalculatorDef} from '@/lib/calculators';
 
@@ -31,7 +31,10 @@ function calculate(slug:string,v:Record<string,number>){
  return {main,label,display,items};
 }
 export default function CalculatorClient({def}:{def:CalculatorDef}){
- const defaults=Object.fromEntries(def.fields.map(f=>[f.key,f.default])); const [values,setValues]=useState<Record<string,number>>(defaults); const result=useMemo(()=>calculate(def.slug,values),[def.slug,values]);
- return <div className="calcLayout"><section className="calcPanel"><div className="panelTitle"><Calculator/><div><h2>값을 입력하세요</h2><p>조건을 변경하면 결과가 바로 계산됩니다.</p></div><button onClick={()=>setValues(defaults)}><RotateCcw/>초기화</button></div><div className="inputGrid">{def.fields.map(f=><label key={f.key}><span>{f.label}</span><div><input type="number" value={values[f.key]} min={f.min??0} step={f.step??1} onChange={e=>setValues({...values,[f.key]:Number(e.target.value)})}/><b>{f.unit}</b></div></label>)}</div></section><section className="calcResult"><span className="resultLabel">{result.label}</span><strong>{result.display}</strong><div className="resultItems">{result.items.map(x=><div key={x.label}><span>{x.label}</span><b>{x.value}</b></div>)}</div><div className="aiExplain"><Bot/><div><b><Sparkles/> 스마트 분석</b><p>입력한 조건을 기준으로 계산했습니다. 수익률과 기간을 바꿔 결과가 얼마나 달라지는지 비교해 보세요.</p></div></div><div className="resultActions"><button><Share2/>결과 공유</button><button className="save">계산 저장 <ArrowRight/></button></div></section></div>
+ const defaults=Object.fromEntries(def.fields.map(f=>[f.key,f.default])); const [values,setValues]=useState<Record<string,number>>(defaults); const [message,setMessage]=useState(''); const result=useMemo(()=>calculate(def.slug,values),[def.slug,values]);
+ useEffect(()=>{const q=new URLSearchParams(window.location.search);const shared=Object.fromEntries(def.fields.filter(f=>q.has(f.key)).map(f=>[f.key,Number(q.get(f.key))]));if(Object.keys(shared).length)setValues({...defaults,...shared});},[]);
+ const flash=(text:string)=>{setMessage(text);window.setTimeout(()=>setMessage(''),2200)};
+ const share=async()=>{const q=new URLSearchParams(Object.entries(values).map(([k,v])=>[k,String(v)]));const url=`${window.location.origin}${window.location.pathname}?${q}`;if(navigator.share)await navigator.share({title:def.name,text:`${def.name} 계산 결과: ${result.display}`,url});else{await navigator.clipboard.writeText(url);flash('공유 링크를 복사했습니다.')}};
+ const save=()=>{localStorage.setItem(`investtoolkit:${def.slug}`,JSON.stringify({values,result:result.display,savedAt:new Date().toISOString()}));flash('이 브라우저에 계산 결과를 저장했습니다.')};
+ return <><div className="calcLayout"><section className="calcPanel"><div className="panelTitle"><Calculator/><div><h2>값을 입력하세요</h2><p>조건을 변경하면 결과가 바로 계산됩니다.</p></div><button onClick={()=>setValues(defaults)}><RotateCcw/>초기화</button></div><div className="inputGrid">{def.fields.map(f=><label key={f.key}><span>{f.label}</span><div><input type="number" value={values[f.key]} min={f.min??0} step={f.step??1} onChange={e=>setValues({...values,[f.key]:Number(e.target.value)})}/><b>{f.unit}</b></div></label>)}</div></section><section className="calcResult"><span className="resultLabel">{result.label}</span><strong>{result.display}</strong><div className="resultItems">{result.items.map(x=><div key={x.label}><span>{x.label}</span><b>{x.value}</b></div>)}</div><div className="aiExplain"><Bot/><div><b><Sparkles/> 스마트 분석</b><p>입력한 조건을 기준으로 계산했습니다. 수익률과 기간을 바꿔 결과가 얼마나 달라지는지 비교해 보세요.</p></div></div><div className="resultActions"><button onClick={share}><Share2/>결과 공유</button><button className="save" onClick={save}>계산 저장 <ArrowRight/></button></div></section></div>{message&&<div className="calcToast">{message}</div>}</>
 }
-
