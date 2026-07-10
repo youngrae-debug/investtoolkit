@@ -1,0 +1,11 @@
+import {describe,expect,it} from 'vitest';
+import {calculate} from './calculator-client';
+describe('financial calculator formulas',()=>{
+ it('calculates CAGR',()=>expect(calculate('cagr-calculator',{start:100,end:200,years:10}).main).toBeCloseTo(7.177,2));
+ it('calculates after-tax dividend',()=>expect(calculate('dividend-calculator',{principal:100_000_000,yield:4,tax:15.4}).main).toBe(3_384_000));
+ it('calculates a new average price',()=>expect(calculate('average-price',{price1:50_000,qty1:100,price2:40_000,qty2:50}).main).toBeCloseTo(46_666.67,1));
+ it('calculates deposit maturity amount',()=>expect(calculate('deposit',{principal:50_000_000,rate:3.5,months:12,tax:15.4}).main).toBe(51_480_500));
+ it('calculates severance estimate',()=>expect(calculate('severance',{salary:12_000_000,days3m:92,serviceDays:1825}).main).toBeCloseTo(19_565_217.39,0));
+ it('never returns a negative required monthly target contribution',()=>expect(calculate('target-asset',{target:100_000_000,current:200_000_000,rate:7,years:10}).main).toBe(0));
+});
+
