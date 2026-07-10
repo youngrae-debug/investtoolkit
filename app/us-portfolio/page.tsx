@@ -1,0 +1,3 @@
+import Link from 'next/link';import {TrendingUp} from 'lucide-react';import UsPortfolio from '@/components/us-portfolio';
+export const metadata={title:'미국주식 포트폴리오 계산기 | InvestToolkit',description:'미국주식과 ETF를 검색하고 현재가, 보유수량, 평균단가, 환율을 반영해 원화 손익을 계산하세요.'};
+export default function Page(){return <main className="calculatorPage"><header className="calcHeader"><div className="wrap"><Link className="brand" href="/"><span className="brandmark"><TrendingUp size={20}/></span><span>Invest<span>Toolkit</span></span></Link><Link href="/calculators">전체 계산기</Link></div></header><div className="wrap portfolioPage"><UsPortfolio/></div></main>}
