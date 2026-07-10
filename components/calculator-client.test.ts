@@ -10,4 +10,7 @@ describe('financial calculator formulas',()=>{
  it('supports a zero percent compound return',()=>expect(calculate('compound-interest',{principal:10_000_000,monthly:500_000,rate:0,years:10}).main).toBe(70_000_000));
  it('supports a zero percent loan rate',()=>expect(calculate('loan',{principal:120_000_000,rate:0,years:10}).main).toBe(1_000_000));
  it('supports a zero percent pension return',()=>expect(calculate('pension',{asset:240_000_000,rate:0,years:20}).main).toBe(1_000_000));
+ it('applies dividend payment frequency without changing annual total',()=>expect(calculate('dividend-calculator',{principal:100_000_000,yield:4,tax:15.4,frequency:12,growth:0,years:10}).main).toBe(3_384_000));
+ it('subtracts retirement income from FIRE expenses',()=>expect(calculate('fire-calculator',{age:35,expense:3_000_000,otherIncome:1_000_000,withdrawal:4,current:0,monthly:1_000_000,rate:5,inflation:2}).main).toBe(600_000_000));
+ it('calculates interest-only loan payments',()=>expect(calculate('loan',{principal:300_000_000,rate:4,years:30,repayment:2,grace:0}).main).toBeCloseTo(1_000_000,0));
 });
