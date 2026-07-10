@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import './portfolio.css';
+import './fixes.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://invetk.com'),
