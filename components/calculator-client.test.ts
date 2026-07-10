@@ -13,4 +13,7 @@ describe('financial calculator formulas',()=>{
  it('applies dividend payment frequency without changing annual total',()=>expect(calculate('dividend-calculator',{principal:100_000_000,yield:4,tax:15.4,frequency:12,growth:0,years:10}).main).toBe(3_384_000));
  it('subtracts retirement income from FIRE expenses',()=>expect(calculate('fire-calculator',{age:35,expense:3_000_000,otherIncome:1_000_000,withdrawal:4,current:0,monthly:1_000_000,rate:5,inflation:2}).main).toBe(600_000_000));
  it('calculates interest-only loan payments',()=>expect(calculate('loan',{principal:300_000_000,rate:4,years:30,repayment:2,grace:0}).main).toBeCloseTo(1_000_000,0));
+ it('includes FX in US stock total return',()=>expect(calculate('us-stock-total-return',{buy:100,sell:100,quantity:10,buyFx:1300,sellFx:1400,dividend:0}).main).toBe(100_000));
+ it('calculates required capital for a dividend goal',()=>expect(calculate('dividend-income-goal',{monthlyGoal:1_000_000,yield:4,tax:15,growth:0,years:10}).main).toBeCloseTo(352_941_176,0));
+ it('calculates long-term ETF fee impact',()=>expect(calculate('etf-expense-ratio',{principal:10_000_000,monthly:0,rate:8,expense:.1,years:10}).main).toBeGreaterThan(20_000_000));
 });
