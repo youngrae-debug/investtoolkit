@@ -4,25 +4,24 @@ import { useMemo, useState } from 'react';
 import { ArrowRight, BarChart3, BookOpen, Bot, Calculator, Check, ChevronDown, CircleDollarSign, Flame, Landmark, Menu, PiggyBank, Search, ShieldCheck, Sparkles, TrendingUp, WalletCards, X } from 'lucide-react';
 
 const calculators = [
-  {name:'복리 계산기',desc:'투자 원금이 시간에 따라 얼마나 성장하는지 계산해요.',icon:TrendingUp,color:'green',tag:'인기',cat:'투자'},
-  {name:'적립식 투자 계산기',desc:'매월 꾸준히 투자했을 때의 미래 자산을 확인해요.',icon:BarChart3,color:'blue',tag:'추천',cat:'투자'},
-  {name:'배당금 계산기',desc:'보유 주식과 배당률로 연간·월간 배당금을 계산해요.',icon:CircleDollarSign,color:'amber',tag:'인기',cat:'투자'},
-  {name:'FIRE 계산기',desc:'경제적 자유를 위해 필요한 자산과 기간을 알아봐요.',icon:Flame,color:'red',tag:'',cat:'투자'},
-  {name:'목표 자산 계산기',desc:'목표 금액까지 필요한 월 투자금과 기간을 계산해요.',icon:WalletCards,color:'purple',tag:'',cat:'투자'},
-  {name:'CAGR 계산기',desc:'기간별 연평균 복합 성장률을 정확하게 계산해요.',icon:BarChart3,color:'cyan',tag:'',cat:'투자'},
-  {name:'ETF 수익 계산기',desc:'ETF 투자 수익과 비용을 한 번에 비교해요.',icon:TrendingUp,color:'blue',tag:'',cat:'ETF'},
-  {name:'리밸런싱 계산기',desc:'목표 비중에 맞춰 매수·매도 금액을 계산해요.',icon:Calculator,color:'purple',tag:'',cat:'ETF'},
-  {name:'미국 배당 세후 계산기',desc:'원천징수 후 실제 받는 배당금을 확인해요.',icon:CircleDollarSign,color:'green',tag:'NEW',cat:'미국주식'},
-  {name:'평균단가 계산기',desc:'추가 매수 후 달라지는 평균 매입가를 계산해요.',icon:BarChart3,color:'amber',tag:'',cat:'미국주식'},
-  {name:'대출 계산기',desc:'상환 방식별 월 납입금과 총이자를 비교해요.',icon:Landmark,color:'blue',tag:'',cat:'금융'},
-  {name:'연금 계산기',desc:'은퇴 후 받을 예상 연금과 준비 자금을 계산해요.',icon:PiggyBank,color:'green',tag:'',cat:'금융'},
+  {slug:'compound-interest',name:'복리 계산기',desc:'투자 원금이 시간에 따라 얼마나 성장하는지 계산해요.',icon:TrendingUp,color:'green',tag:'인기',cat:'투자'},
+  {slug:'recurring-investment',name:'적립식 투자 계산기',desc:'매월 꾸준히 투자했을 때의 미래 자산을 확인해요.',icon:BarChart3,color:'blue',tag:'추천',cat:'투자'},
+  {slug:'dividend-calculator',name:'배당금 계산기',desc:'보유 주식과 배당률로 연간·월간 배당금을 계산해요.',icon:CircleDollarSign,color:'amber',tag:'인기',cat:'투자'},
+  {slug:'fire-calculator',name:'FIRE 계산기',desc:'경제적 자유를 위해 필요한 자산과 기간을 알아봐요.',icon:Flame,color:'red',tag:'',cat:'투자'},
+  {slug:'target-asset',name:'목표 자산 계산기',desc:'목표 금액까지 필요한 월 투자금과 기간을 계산해요.',icon:WalletCards,color:'purple',tag:'',cat:'투자'},
+  {slug:'cagr-calculator',name:'CAGR 계산기',desc:'기간별 연평균 복합 성장률을 정확하게 계산해요.',icon:BarChart3,color:'cyan',tag:'',cat:'투자'},
+  {slug:'etf-return',name:'ETF 수익 계산기',desc:'ETF 투자 수익과 비용을 한 번에 비교해요.',icon:TrendingUp,color:'blue',tag:'',cat:'ETF'},
+  {slug:'rebalancing',name:'리밸런싱 계산기',desc:'목표 비중에 맞춰 매수·매도 금액을 계산해요.',icon:Calculator,color:'purple',tag:'',cat:'ETF'},
+  {slug:'us-dividend-tax',name:'미국 배당 세후 계산기',desc:'원천징수 후 실제 받는 배당금을 확인해요.',icon:CircleDollarSign,color:'green',tag:'NEW',cat:'미국주식'},
+  {slug:'average-price',name:'평균단가 계산기',desc:'추가 매수 후 달라지는 평균 매입가를 계산해요.',icon:BarChart3,color:'amber',tag:'',cat:'미국주식'},
+  {slug:'loan',name:'대출 계산기',desc:'상환 방식별 월 납입금과 총이자를 비교해요.',icon:Landmark,color:'blue',tag:'',cat:'금융'},
+  {slug:'pension',name:'연금 계산기',desc:'은퇴 후 받을 예상 연금과 준비 자금을 계산해요.',icon:PiggyBank,color:'green',tag:'',cat:'금융'},
 ];
-const calculatorSlugs=['compound-interest','recurring-investment','dividend-calculator','fire-calculator','target-asset','cagr-calculator','etf-return','rebalancing'];
-
 function formatWon(n:number){return Math.round(n).toLocaleString('ko-KR')+'원'}
 
 export default function Home(){
- const [menu,setMenu]=useState(false); const [principal,setPrincipal]=useState(10000000); const [monthly,setMonthly]=useState(500000); const [rate,setRate]=useState(7); const [years,setYears]=useState(20);
+ const [menu,setMenu]=useState(false); const [activeCategory,setActiveCategory]=useState('전체'); const [principal,setPrincipal]=useState(10000000); const [monthly,setMonthly]=useState(500000); const [rate,setRate]=useState(7); const [years,setYears]=useState(20);
+ const filteredCalculators=useMemo(()=>activeCategory==='전체'?calculators:calculators.filter(c=>c.cat===activeCategory),[activeCategory]);
  const result=useMemo(()=>{const m=rate/100/12, months=years*12; const factor=m===0?months:(Math.pow(1+m,months)-1)/m;const future=principal*Math.pow(1+m,months)+monthly*factor; const invested=principal+monthly*months; return {future,invested,profit:future-invested}},[principal,monthly,rate,years]);
  return <main>
   <header><div className="nav wrap"><a className="brand" href="/"><span className="brandmark"><TrendingUp size={20}/></span><span>Invest<span>Toolkit</span></span></a><nav><a href="/calculators">전체 계산기</a><a href="#guide">투자 가이드</a><a href="/saved">저장된 계산</a></nav><div className="navActions"><a className="search" href="/calculators"><Search size={18}/><span>계산기 검색</span></a><a className="primary small" href="/calculators">무료로 계산하기</a></div><button className="mobileMenu" onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></div>{menu&&<div className="mobileNav"><a href="/calculators">전체 계산기</a><a href="#guide">투자 가이드</a><a href="/saved">저장된 계산</a><a className="primary" href="/calculators">무료로 계산하기</a></div>}</header>
@@ -32,7 +31,7 @@ export default function Home(){
 
   <section className="stats"><div className="wrap"><div><strong>25</strong><span>투자·금융 계산기</span></div><div><strong>무료</strong><span>회원가입 없이 이용</span></div><div><strong>미국주식</strong><span>환율·배당·ETF 계산</span></div><div><strong>저장</strong><span>브라우저 결과 보관</span></div></div></section>
 
-  <section className="tools section" id="tools"><div className="wrap"><div className="sectionHead"><div><span>CALCULATORS</span><h2>필요한 계산기를 찾아보세요</h2><p>투자부터 대출, 연금까지 금융 생활에 필요한 계산을 한곳에 모았습니다.</p></div><a href="/calculators">전체 계산기 보기 <ArrowRight/></a></div><div className="filters"><button className="active">전체</button><button>투자</button><button>ETF</button><button>미국주식</button><button>금융</button></div><div className="cardGrid">{calculators.slice(0,8).map((c,i)=><a className="toolCard" href={`/calculators/${calculatorSlugs[i]}`} key={c.name}><div className={`toolIcon ${c.color}`}><c.icon/></div>{c.tag&&<span className={`tag ${c.tag==='NEW'?'new':''}`}>{c.tag}</span>}<h3>{c.name}</h3><p>{c.desc}</p><span className="go">계산하기 <ArrowRight/></span></a>)}</div><a className="more" href="/calculators">20개 계산기 모두 보기 <ArrowRight/></a></div></section>
+  <section className="tools section" id="tools"><div className="wrap"><div className="sectionHead"><div><span>CALCULATORS</span><h2>필요한 계산기를 찾아보세요</h2><p>투자부터 대출, 연금까지 금융 생활에 필요한 계산을 한곳에 모았습니다.</p></div><a href="/calculators">전체 계산기 보기 <ArrowRight/></a></div><div className="filters" role="tablist" aria-label="계산기 카테고리">{['전체','투자','ETF','미국주식','금융'].map(category=><button type="button" role="tab" aria-selected={activeCategory===category} className={activeCategory===category?'active':''} onClick={()=>setActiveCategory(category)} key={category}>{category}</button>)}</div><div className="cardGrid">{filteredCalculators.map(c=><a className="toolCard" href={`/calculators/${c.slug}`} key={c.slug}><div className={`toolIcon ${c.color}`}><c.icon/></div>{c.tag&&<span className={`tag ${c.tag==='NEW'?'new':''}`}>{c.tag}</span>}<h3>{c.name}</h3><p>{c.desc}</p><span className="go">계산하기 <ArrowRight/></span></a>)}</div><div className="filterStatus" aria-live="polite">{activeCategory} 계산기 {filteredCalculators.length}개</div><a className="more" href="/calculators">25개 계산기 모두 보기 <ArrowRight/></a></div></section>
 
   <section className="difference section" id="insight"><div className="wrap diffGrid"><div><span className="sectionLabel">WHY INVESTTOOLKIT</span><h2>결과의 의미까지<br/>이해할 수 있는 계산기.</h2><p>InvestToolkit은 적용한 공식과 가정을 공개하고, 주요 조건이 달라질 때 결과가 어떻게 변하는지 비교합니다.</p><div className="features"><div><span><TrendingUp/></span><div><b>결과 해석</b><small>계산기별로 중요한 숫자의 의미를 설명합니다.</small></div></div><div><span><BarChart3/></span><div><b>시나리오 비교</b><small>기준 수익률 전후의 결과 차이를 비교합니다.</small></div></div><div><span><ShieldCheck/></span><div><b>공식과 가정 공개</b><small>계산에 사용한 공식과 한계를 함께 표시합니다.</small></div></div></div></div><div className="insightCard"><div className="insightHeader"><span><Sparkles/> Result Insight</span><small>복리 계산 결과</small></div><div className="asset"><span>예상 자산</span><strong>{formatWon(result.future)}</strong><small><TrendingUp/> 투자 원금 대비 {Math.round((result.future/result.invested-1)*100)}% 증가</small></div><div className="message"><TrendingUp/><p>예상 수익은 <b>{formatWon(result.profit)}</b>입니다. 수익률과 투자 기간을 낮춰 보수적인 결과도 비교해 보세요.</p></div><div className="impact"><div><span>확인할 조건</span><b className="down">수익률 변동</b></div><div><span>조정할 수 있는 조건</span><b className="up">월 투자금</b></div></div><a className="insightLink" href="/calculators/compound-interest">복리 계산기 자세히 보기 <ArrowRight/></a></div></div></section>
 
