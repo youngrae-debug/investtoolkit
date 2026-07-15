@@ -5,6 +5,7 @@ import { formatDuration, formatMonthDifference } from "@/lib/format/duration";
 
 describe("Korean formatting", () => {
   it("formats one hundred million won", () => expect(formatCurrency(100_000_000)).toBe("1억 원"));
+  it("formats one trillion won", () => expect(formatCurrency(1_000_000_000_000)).toBe("1조 원"));
   it("formats 3.5 million won", () => expect(formatCurrency(3_500_000)).toBe("350만 원"));
   it("formats 61 months", () => expect(formatDuration(61)).toBe("5년 1개월"));
   it("formats 9 month difference", () => expect(formatMonthDifference(9)).toBe("9개월"));

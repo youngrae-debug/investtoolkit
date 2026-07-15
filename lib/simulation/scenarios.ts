@@ -1,4 +1,5 @@
 import { simulatePlan } from "./engine";
+import { monthsBetween } from "./goal-solver";
 import type {
   SimulationEvent,
   SimulationInput,
@@ -17,6 +18,14 @@ export interface ConditionPreset {
   label: string;
   description: string;
   events: SimulationEvent[];
+}
+
+export interface ConditionTargetAnalysis {
+  projectedAtTarget: number;
+  shortage: number;
+  surplus: number;
+  shortageChange: number;
+  insufficientFunds: boolean;
 }
 
 export const conditionPresets: ConditionPreset[] = [
@@ -99,3 +108,28 @@ export function simulateCondition(
   return simulatePlan({ ...base, events: preset.events });
 }
 
+export function analyzeConditionAtTarget(
+  base: SimulationInput,
+  preset: ConditionPreset,
+  targetDate: Date,
+  baseShortage: number,
+): ConditionTargetAnalysis {
+  const months = monthsBetween(base.startDate ?? new Date(), targetDate);
+  const result = simulatePlan({
+    ...base,
+    events: preset.events,
+    maxMonths: Math.max(1, months),
+  });
+  const projectedAtTarget = months === 0
+    ? base.currentAmount
+    : result.timeline[months - 1]?.closingBalance ?? base.currentAmount;
+  const shortage = Math.max(0, base.goalAmount - projectedAtTarget);
+
+  return {
+    projectedAtTarget,
+    shortage,
+    surplus: Math.max(0, projectedAtTarget - base.goalAmount),
+    shortageChange: baseShortage - shortage,
+    insufficientFunds: result.insufficientMonth !== null && result.insufficientMonth <= months,
+  };
+}

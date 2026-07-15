@@ -6,7 +6,7 @@ export function SiteFooter() {
       <div className="site-footer__grid">
         <div>
           <div className="footer-brand">INVETK <span>Money GPS</span></div>
-          <p>금액을 시간으로 번역해, 오늘의 선택이 목표일을 얼마나 바꾸는지 보여드립니다.</p>
+          <p>목표 날짜의 부족분을 계산하고, 이번 달부터 실행할 수 있는 세 가지 해결안을 만듭니다.</p>
         </div>
         <div className="footer-links" aria-label="푸터 링크">
           <Link href="/about">INVETK 소개</Link>
@@ -22,4 +22,3 @@ export function SiteFooter() {
     </footer>
   );
 }
-

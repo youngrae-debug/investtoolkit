@@ -6,26 +6,26 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://invetk.com"),
   title: {
-    default: "INVETK | 내 자산 목표 도착일 계산기",
+    default: "INVETK | 돈 목표 부족분 해결 도구",
     template: "%s | INVETK",
   },
   description:
-    "목표 금액, 지금까지 모은 돈, 매달 모을 돈으로 목표까지 남은 기간과 예상 도착 연월을 계산해 보세요.",
+    "목표와 현재 계획을 입력하면 예상 목표 충족률과 부족분을 진단하고, 월 적립·목돈·기간 조정 해결책과 이번 달 실행 계획을 제공합니다.",
   alternates: { canonical: "/" },
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
   openGraph: {
-    title: "내 돈의 목적지, 언제 도착할까요?",
-    description: "세 가지 금액만으로 확인하는 나의 목표 도착일",
+    title: "5년 안에 1억, 지금 계획으로 가능할까요?",
+    description: "목표 충족률과 부족분을 진단하고 월 적립·목돈·기간 조정 해결책을 만드는 Money GPS",
     url: "https://invetk.com",
     siteName: "INVETK Money GPS",
     locale: "ko_KR",
     type: "website",
-    images: [{ url: "/og.png", width: 1733, height: 907, alt: "INVETK Money GPS — 내 돈의 목적지, 언제 도착할까요?" }],
+    images: [{ url: "/og.png", width: 1732, height: 908, alt: "INVETK Money GPS — 목표 진단에서 이번 달 실행까지" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "INVETK Money GPS",
-    description: "세 가지 금액만으로 확인하는 나의 목표 도착일",
+    description: "예상 목표 충족률과 부족분, 월 적립·목돈·기간 조정 해결책",
     images: ["/og.png"],
   },
 };

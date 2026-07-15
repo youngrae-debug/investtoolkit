@@ -4,18 +4,20 @@ export function formatCurrency(value: number): string {
   const absolute = Math.round(Math.abs(value));
   if (absolute === 0) return "0원";
 
-  const eok = Math.floor(absolute / 100_000_000);
+  const jo = Math.floor(absolute / 1_000_000_000_000);
+  const eok = Math.floor((absolute % 1_000_000_000_000) / 100_000_000);
   const man = Math.floor((absolute % 100_000_000) / 10_000);
   const won = absolute % 10_000;
   const parts: string[] = [];
 
+  if (jo > 0) parts.push(`${jo.toLocaleString("ko-KR")}조`);
   if (eok > 0) parts.push(`${eok.toLocaleString("ko-KR")}억`);
   if (man > 0) parts.push(`${man.toLocaleString("ko-KR")}만`);
-  if (won > 0 && eok === 0 && man === 0) {
+  if (won > 0 && jo === 0 && eok === 0 && man === 0) {
     parts.push(won.toLocaleString("ko-KR"));
   }
 
-  const suffix = eok > 0 || man > 0 ? " 원" : "원";
+  const suffix = jo > 0 || eok > 0 || man > 0 ? " 원" : "원";
   return `${sign}${parts.join(" ")}${suffix}`;
 }
 
