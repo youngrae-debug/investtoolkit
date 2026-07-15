@@ -1,2 +1,14 @@
-import LegalPage from '@/components/legal-page';export const metadata={title:'이용약관 | InvestToolkit'};export default function Page(){return <LegalPage title="이용약관" updated="2026년 7월 10일"><h2>제1조 목적</h2><p>본 약관은 InvestToolkit이 제공하는 투자·금융 계산 서비스의 이용 조건과 사용자 및 서비스 운영자의 권리와 책임을 정합니다.</p><h2>제2조 서비스의 성격</h2><p>서비스에서 제공하는 계산 결과와 콘텐츠는 일반적인 정보 제공을 목적으로 하며 투자, 세무, 법률 또는 재무 자문이 아닙니다.</p><h2>제3조 이용자의 책임</h2><p>이용자는 입력값과 계산 가정을 직접 확인해야 하며, 실제 금융 의사결정 전 관련 기관 또는 전문가의 확인을 받아야 합니다.</p><h2>제4조 서비스 변경</h2><p>운영상 또는 기술상 필요한 경우 기능과 제공 범위를 변경할 수 있습니다. 중요한 변경은 서비스 화면을 통해 안내합니다.</p><h2>제5조 책임 제한</h2><p>시장 변동, 제도 변경, 입력 오류 또는 외부 서비스 장애로 발생하는 손해에 대하여 관련 법령이 허용하는 범위에서 책임이 제한됩니다.</p></LegalPage>}
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "이용약관과 금융 면책", description: "INVETK Money GPS 계산 결과의 성격과 이용 시 유의사항을 안내합니다.", alternates: { canonical: "/terms" } };
+
+export default function TermsPage() {
+  return <main id="main-content" className="content-page article-page legal-page"><header className="article-header"><span className="section-kicker">이용약관 · 금융 면책</span><h1>결과는 계획을 비교하기 위한 참고용 예상치입니다</h1><p>특정 금융상품이나 투자 행동을 권유하지 않습니다.</p><small>시행일 2026년 7월 15일</small></header><article className="article-body">
+    <section><h2>1. 서비스의 목적</h2><p>Money GPS는 사용자가 입력한 금액과 가정을 바탕으로 목표 자산까지의 예상 기간과 선택별 시간 차이를 계산하는 정보 도구입니다. 개인 맞춤형 재무설계, 투자자문, 세무 또는 법률 자문이 아닙니다.</p></section>
+    <section><h2>2. 결과의 한계</h2><p>실제 수익률, 세금, 수수료, 물가, 소득, 지출, 시장 상황은 계산과 달라질 수 있습니다. 예상 도착일은 확정된 미래 날짜가 아니며, 손실 방지나 목표 달성을 보장하지 않습니다.</p></section>
+    <section><h2>3. 사용자의 책임</h2><p>사용자는 입력값과 가정을 직접 검토해야 합니다. 중요한 금융 결정을 내릴 때는 자격을 갖춘 전문가와 실제 금융기관의 조건을 별도로 확인하세요.</p></section>
+    <section><h2>4. 금지된 사용</h2><p>서비스를 불법 목적, 타인의 개인정보 침해, 시스템 공격, 결과의 허위 광고나 수익 보장 표현에 사용해서는 안 됩니다.</p></section>
+    <section><h2>5. 서비스 변경</h2><p>계산 방식과 기능은 정확성과 사용성을 개선하기 위해 변경될 수 있습니다. 중요한 계산 기준 변경은 계산 기준 페이지와 업데이트 날짜에 반영합니다.</p></section>
+  </article></main>;
+}
 
