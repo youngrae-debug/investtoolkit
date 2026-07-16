@@ -44,7 +44,7 @@ import { useMoneyGpsAnalysis } from "./use-money-gps-analysis";
 
 declare global {
   interface Window {
-    dataLayer?: Array<IArguments | Record<string, unknown>>;
+    gtag?: (...args: unknown[]) => void;
   }
 }
 
@@ -55,8 +55,11 @@ interface MoneyGpsAppProps {
 }
 
 function trackEvent(eventName: string, properties: Record<string, string | number> = {}) {
-  if (typeof window === "undefined" || !window.dataLayer) return;
-  window.dataLayer.push({ event: eventName, page_path: window.location.pathname, ...properties });
+  if (typeof window === "undefined" || !window.gtag) return;
+  window.gtag("event", eventName, {
+    page_path: window.location.pathname,
+    ...properties,
+  });
 }
 
 function monthlyChangeCopy(amount: number): string {
