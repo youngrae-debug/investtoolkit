@@ -5,6 +5,7 @@ import {
   projectedBalanceAtTarget,
   requiredMonthlyContribution,
 } from "@/lib/simulation/goal-solver";
+import { simulatePlan } from "@/lib/simulation/engine";
 
 const startDate = new Date(2026, 6, 1);
 const targetDate = new Date(2031, 6, 1);
@@ -42,6 +43,26 @@ describe("goal date solver", () => {
     const analysis = analyzeGoalPlan({ goalAmount: 100_000_000, currentAmount: 30_000_000, monthlyNetFlow: 1_000_000, annualRate: 4, startDate }, targetDate);
     expect(analysis.projectedAtTarget).toBeGreaterThan(90_000_000);
     expect(analysis.requiredMonthlyContribution).toBeLessThan(1_170_000);
+  });
+
+  it.each([-20, 0, 5, 30])("matches the monthly simulator at an annual rate of %s percent", (annualRate) => {
+    const input = {
+      goalAmount: 100_000_000,
+      currentAmount: 30_000_000,
+      monthlyNetFlow: 1_000_000,
+      annualRate,
+      startDate,
+      maxMonths: 60,
+    };
+    const simulated = simulatePlan(input);
+    const projected = projectedBalanceAtTarget({
+      currentAmount: input.currentAmount,
+      monthlyContribution: input.monthlyNetFlow,
+      annualRate,
+      months: 60,
+    });
+
+    expect(projected).toBeCloseTo(simulated.timeline[59].closingBalance, 2);
   });
 
   it("keeps action amounts within the user's stated limits", () => {

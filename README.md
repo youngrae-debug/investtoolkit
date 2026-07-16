@@ -58,7 +58,7 @@ Playwright 브라우저가 없는 환경에서는 최초 1회 `npx playwright in
 
 ## 계산 엔진
 
-월별 계산은 [`lib/simulation/engine.ts`](./lib/simulation/engine.ts), 목표 날짜 해결안은 [`lib/simulation/goal-solver.ts`](./lib/simulation/goal-solver.ts)에 UI와 분리된 순수 함수로 구현되어 있습니다.
+월별 계산은 [`lib/simulation/engine.ts`](./lib/simulation/engine.ts), 목표 날짜 해결안은 [`lib/simulation/goal-solver.ts`](./lib/simulation/goal-solver.ts)에 UI와 분리된 순수 함수로 구현되어 있습니다. 두 계산 경로는 [`lib/simulation/growth.ts`](./lib/simulation/growth.ts)의 월 수익률과 월말 잔액 규칙을 공통으로 사용합니다.
 
 - 최대 기간: 1,200개월
 - 연 수익률 범위: -20%~30%
@@ -71,7 +71,7 @@ Playwright 브라우저가 없는 환경에서는 최초 1회 `npx playwright in
 
 ## 브라우저 저장과 개인정보
 
-기본 계산은 저장하지 않습니다. 사용자가 ‘계획 저장’을 누른 경우에만 버전 4 스키마의 목표 날짜, 선택한 해결책과 업데이트 기록을 localStorage에 보관합니다. 이전 버전 데이터는 자동 이전합니다. 사용자는 데이터 백업, 백업 불러오기, 전체 삭제를 직접 실행할 수 있습니다.
+기본 계산은 저장하지 않습니다. 사용자가 ‘계획 저장’을 누른 경우에만 버전 4 스키마의 목표 날짜, 선택한 해결책과 업데이트 기록을 localStorage에 보관합니다. 이전 버전 데이터는 자동 이전합니다. 사용자는 데이터 백업, 백업 불러오기, 전체 삭제를 직접 실행할 수 있으며 저장 데이터가 없는 브라우저에서도 백업을 복원할 수 있습니다.
 
 분석 이벤트에는 단계 번호, 기능 사용 여부, 결과 상태 같은 비금융 속성만 허용합니다. 월급, 자산, 목표 금액, 지출, 월 적립액, 메모와 전체 결과는 포함하지 않습니다.
 

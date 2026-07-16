@@ -1,4 +1,31 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+function futureTargetMonth(years = 5): string {
+  const now = new Date();
+  return `${now.getFullYear() + years}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+async function reachMonthlyStep(
+  page: Page,
+  { goal = "10000", current = "3000" }: { goal?: string; current?: string } = {},
+) {
+  await page.goto("/money-gps");
+  await expect(page.locator("main[data-hydrated='true']")).toBeVisible();
+  await page.getByRole("textbox", { name: "목표 금액", exact: true }).fill(goal);
+  await page.locator("#goal-date").fill(futureTargetMonth());
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("textbox", { name: "지금까지 모은 돈", exact: true }).fill(current);
+  await page.getByRole("button", { name: "다음" }).click();
+}
+
+async function createResult(
+  page: Page,
+  values: { goal?: string; current?: string; monthly?: string } = {},
+) {
+  await reachMonthlyStep(page, values);
+  await page.getByRole("textbox", { name: "매달 모을 돈", exact: true }).fill(values.monthly ?? "100");
+  await page.getByRole("button", { name: "부족분과 해결안 보기" }).click();
+}
 
 test("creates three goal-date solutions and restores a saved plan", async ({ page }) => {
   const now = new Date();
@@ -67,4 +94,106 @@ test("blocks unsafe amount ranges and requires a future target date", async ({ p
   await goalInput.fill("10000");
   await page.locator("#goal-date").fill(pastMonth);
   await expect(nextButton).toBeDisabled();
+});
+
+test("updates a saved limited plan and records the shortage change", async ({ page }) => {
+  await createResult(page);
+
+  await page.getByText("내가 가능한 범위로 실행안 맞추기").click();
+  await page.getByRole("textbox", { name: "매달 추가로 가능한 최대 금액", exact: true }).fill("10");
+  await page.getByRole("textbox", { name: "지금 사용할 수 있는 여유자금", exact: true }).fill("500");
+  await page.getByRole("button", { name: "가능 범위로 다시 계산" }).click();
+  await page.getByRole("article", { name: /매달 가능한 만큼 채우기/ }).getByRole("button").click();
+  await page.getByRole("button", { name: "계획 저장" }).click();
+
+  await page.getByRole("button", { name: "업데이트하기" }).click();
+  await page.getByRole("textbox", { name: "이번 달 지금까지 모은 돈", exact: true }).fill("3100");
+  await page.getByRole("button", { name: "이번 달 기록 저장" }).click();
+
+  await expect(page.locator(".toast")).toContainText("예상 부족분이 100만 원 줄었어요");
+  await expect(page.locator(".checkin-list")).toContainText("부족분 100만 원 감소");
+});
+
+test("exports a saved plan and restores the backup", async ({ page }, testInfo) => {
+  await createResult(page);
+  await page.getByRole("article", { name: /시작 자금으로 채우기/ }).getByRole("button").click();
+  await page.getByRole("button", { name: "계획 저장" }).click();
+
+  await page.getByText("공유와 데이터 관리").click();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "데이터 백업" }).click();
+  const download = await downloadPromise;
+  const backupPath = testInfo.outputPath("money-gps-backup.json");
+  await download.saveAs(backupPath);
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "이 브라우저의 저장 데이터 삭제" }).click();
+  await page.goto("/");
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "백업 불러오기" }).click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles(backupPath);
+  await expect(page.locator(".toast")).toContainText("백업을 불러왔어요");
+
+  await page.getByRole("button", { name: "계획 다시 보기" }).click();
+  await expect(page.locator(".core-inputs")).toContainText("3,000만 원");
+});
+
+test("keeps monthly updates aligned with the currently displayed action", async ({ page }) => {
+  await createResult(page);
+  await page.getByRole("article", { name: /매달 나눠 채우기/ }).getByRole("button").click();
+  await page.getByRole("button", { name: "계획 저장" }).click();
+
+  await page.getByRole("button", { name: "업데이트하기" }).click();
+  await page.getByRole("textbox", { name: "이번 달 지금까지 모은 돈", exact: true }).fill("3100");
+  await page.getByRole("button", { name: "이번 달 기록 저장" }).click();
+  await expect(page.locator(".solution-card--selected")).toContainText("115만 원");
+
+  await page.getByRole("button", { name: "업데이트하기" }).click();
+  await page.getByRole("button", { name: "이번 달 기록 저장" }).click();
+  const savedMonthlyContribution = await page.evaluate(() => {
+    const raw = window.localStorage.getItem("invetk-money-gps");
+    return raw ? JSON.parse(raw).actionPlan.monthlyContribution : null;
+  });
+  expect(savedMonthlyContribution).toBe(1_150_000);
+});
+
+test("moves focus into the cashflow helper and restores it on Escape", async ({ page }) => {
+  await reachMonthlyStep(page);
+  const helperTrigger = page.getByRole("button", { name: /월 적립액을 잘 모르겠어요/ });
+  await helperTrigger.click();
+
+  await expect(page.getByRole("textbox", { name: "한 달 실수령액은 얼마인가요?", exact: true })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(helperTrigger).toBeFocused();
+});
+
+test("keeps a negative cashflow visible and warns about insufficient funds", async ({ page }) => {
+  await reachMonthlyStep(page, { current: "1000" });
+  await page.getByRole("button", { name: /월 적립액을 잘 모르겠어요/ }).click();
+
+  await page.getByRole("textbox", { name: "한 달 실수령액은 얼마인가요?", exact: true }).fill("250");
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("textbox", { name: "한 달 고정비는 얼마인가요?", exact: true }).fill("150");
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("textbox", { name: "한 달 생활비는 얼마인가요?", exact: true }).fill("150");
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "매달 모을 돈 계산" }).click();
+
+  await expect(page.locator(".flow-summary")).toContainText("-50만 원");
+  await page.getByRole("button", { name: "부족분과 해결안 보기" }).click();
+  await expect(page.getByText("이 계획을 유지하면 돈이 부족해질 수 있어요").last()).toBeVisible();
+  await expect(page.locator(".core-inputs .negative")).toHaveText("-50만 원");
+});
+
+test("shows an on-track result and recalculates when the return assumption changes", async ({ page }) => {
+  await createResult(page, { monthly: "150" });
+  await expect(page.getByRole("heading", { name: "2,000만 원 여유" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "현재 계획을 활용하는 세 가지 방법" })).toBeVisible();
+
+  await page.getByText("수익률 가정 적용하기").click();
+  await page.getByRole("button", { name: "연 4%" }).click();
+  await expect(page.locator(".result-route-label")).toContainText("연 4% 계산 가정");
+  await expect(page.locator("#calculator-title")).not.toHaveText("2,000만 원 여유");
 });

@@ -9,10 +9,20 @@
 - 실행안을 바꾸면 행동 계획이 즉시 바뀌고 체크리스트 완료 상태를 확인할 수 있다.
 - 월 적립액 변화가 목표일에 미치는 시간 차이를 이해할 수 있다.
 - 저장이 서버가 아닌 현재 브라우저에서만 이뤄짐을 이해한다.
+- 저장된 계획을 업데이트했을 때 화면의 실행안과 다음 계산의 월 적립액이 일치한다.
+- 저장 데이터가 없는 브라우저에서도 백업 파일로 계획을 복원할 수 있다.
+- 월급·지출 도우미를 키보드만으로 열고 이동하고 닫을 수 있다.
 
 ## 비민감 이벤트
 
-`landing_cta_clicked`, `gps_started`, `gps_step_completed`, `gps_calculation_completed`, `goal_action_selected`, `monthly_action_plan_copied`, `condition_compared`, `plan_saved`, `monthly_update_saved`, `backup_exported`, `backup_imported`, `local_data_deleted`를 사용한다. 금액, 소득, 자산, 지출, 메모, 계산 결과는 속성에 넣지 않는다.
+`gps_started`, `gps_step_completed`, `gps_calculation_completed`, `goal_action_selected`, `feasibility_limits_applied`, `monthly_action_plan_copied`, `condition_compared`, `plan_saved`, `monthly_update_saved`, `result_copied`, `web_share_used`, `share_card_created`, `backup_exported`, `backup_imported`, `local_data_deleted`를 사용한다. 금액, 소득, 자산, 지출, 메모, 계산 결과는 속성에 넣지 않는다.
+
+## 자동 검증 범위
+
+- 단위 테스트: 월별 계산, 목표일 해결안, 조건 이벤트, 저장 마이그레이션, 한국어 포맷
+- 계산 일치성: 연 -20%, 0%, 5%, 30%에서 목표일 공식과 월별 시뮬레이터 비교
+- 모바일 E2E: 3단계 입력, 입력 범위, 실행안 선택, 저장·복원, 가능한 범위, 이번 달 업데이트, 백업, 음수 현금흐름, 목표 달성, 수익률 변경, 모달 포커스
+- 완료 검사: `npm run typecheck`, `npm run lint`, `npm test`, `npm run test:e2e`, `npm run build`
 
 ## 점검 지표
 

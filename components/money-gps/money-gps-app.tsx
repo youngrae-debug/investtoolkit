@@ -4,29 +4,26 @@ import {
   type ChangeEvent,
   type KeyboardEvent,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
 import { formatCurrency, manwonToWon, wonToManwon } from "@/lib/format/currency";
 import { formatArrivalDate } from "@/lib/format/date";
 import { formatDuration } from "@/lib/format/duration";
+import { dateToMonthValue, futureMonthValue, monthValueToDate } from "@/lib/format/month-value";
 import {
   analyzeGoalPlan,
   projectedBalanceAtTarget,
   type GoalActionPlanId,
   type GoalFeasibilityLimits,
 } from "@/lib/simulation/goal-solver";
-import {
-  calculateMonthlyNetFlow,
-  simulatePlan,
-} from "@/lib/simulation/engine";
+import { simulatePlan } from "@/lib/simulation/engine";
 import {
   analyzeConditionAtTarget,
   conditionPresets,
   type ConditionPresetId,
 } from "@/lib/simulation/scenarios";
-import type { CashflowInput, SimulationInput, SimulationResult } from "@/lib/simulation/types";
+import type { CashflowInput, SimulationInput } from "@/lib/simulation/types";
 import {
   deleteSavedPlan,
   exportBackup,
@@ -36,6 +33,13 @@ import {
   SCHEMA_VERSION,
   type SavedPlan,
 } from "@/lib/storage/plans";
+import { AssetChart } from "./asset-chart";
+import { CashflowHelper } from "./cashflow-helper";
+import { MAX_CURRENT_MANWON, MAX_GOAL_MANWON, MAX_MONTHLY_MANWON } from "./constants";
+import { GoalDateInput } from "./goal-date-input";
+import { MoneyInput } from "./money-input";
+import { Progress } from "./progress";
+import { useMoneyGpsAnalysis } from "./use-money-gps-analysis";
 
 declare global {
   interface Window {
@@ -49,292 +53,9 @@ interface MoneyGpsAppProps {
   autoStart?: boolean;
 }
 
-interface QuickAmount {
-  label: string;
-  value: number;
-}
-
-const MAX_GOAL_MANWON = 100_000_000;
-const MAX_CURRENT_MANWON = 100_000_000;
-const MAX_MONTHLY_MANWON = 1_000_000;
-
-function dateToMonthValue(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function monthValueToDate(value: string): Date | null {
-  const match = /^(\d{4})-(\d{2})$/.exec(value);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  if (month < 1 || month > 12) return null;
-  return new Date(year, month - 1, 1);
-}
-
-function futureMonthValue(years: number): string {
-  const now = new Date();
-  return dateToMonthValue(new Date(now.getFullYear() + years, now.getMonth(), 1));
-}
-
 function trackEvent(eventName: string, properties: Record<string, string | number> = {}) {
   if (typeof window === "undefined" || !window.dataLayer) return;
   window.dataLayer.push({ event: eventName, page_path: window.location.pathname, ...properties });
-}
-
-function MoneyInput({
-  id,
-  label,
-  hint,
-  value,
-  onChange,
-  quickAmounts,
-  maxValue = MAX_CURRENT_MANWON,
-  readOnly = false,
-}: {
-  id: string;
-  label: string;
-  hint: string;
-  value: number | null;
-  onChange: (value: number | null) => void;
-  quickAmounts: QuickAmount[];
-  maxValue?: number;
-  readOnly?: boolean;
-}) {
-  const displayedValue = value === null ? "" : value.toLocaleString("ko-KR");
-  const readableAmount = value === null
-    ? "금액을 입력하면 원 단위로 확인할 수 있어요."
-    : formatCurrency(manwonToWon(value));
-  const inputError = !readOnly && value !== null && value > maxValue
-    ? `최대 ${formatCurrency(manwonToWon(maxValue))}까지 입력할 수 있어요.`
-    : "";
-
-  function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    const cleaned = event.target.value.replace(/[^0-9]/g, "");
-    if (cleaned === "") {
-      onChange(null);
-      return;
-    }
-    const parsed = Number(cleaned);
-    onChange(Number.isSafeInteger(parsed) ? Math.min(parsed, maxValue + 1) : maxValue + 1);
-  }
-
-  return (
-    <div className="money-input-group">
-      <label htmlFor={id}>{label}</label>
-      <p id={`${id}-hint`}>{hint}</p>
-      <div className={`money-input ${readOnly ? "money-input--readonly" : ""}`}>
-        <input
-          id={id}
-          aria-describedby={`${id}-hint ${id}-readable${inputError ? ` ${id}-error` : ""}`}
-          aria-invalid={Boolean(inputError)}
-          inputMode="numeric"
-          autoComplete="off"
-          placeholder="0"
-          value={displayedValue}
-          onChange={handleChange}
-          readOnly={readOnly}
-        />
-        <span>만 원</span>
-      </div>
-      <p className={`money-input-readable ${value === null ? "money-input-readable--empty" : ""}`} id={`${id}-readable`} aria-live="polite">
-        <span aria-hidden="true">{value === null ? "○" : "="}</span> {readableAmount}
-      </p>
-      {inputError && <p className="field-error" id={`${id}-error`} role="alert">{inputError}</p>}
-      {!readOnly && (
-        <div className="quick-amounts" aria-label={`${label} 빠른 선택`}>
-          {quickAmounts.map((amount) => (
-            <button
-              type="button"
-              key={amount.value}
-              onClick={() => onChange(amount.value)}
-              aria-pressed={value === amount.value}
-            >
-              {amount.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function GoalDateInput({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const now = new Date();
-  const minimum = dateToMonthValue(new Date(now.getFullYear(), now.getMonth() + 1, 1));
-
-  return (
-    <div className="goal-date-group">
-      <label htmlFor="goal-date">목표 날짜</label>
-      <p id="goal-date-hint">그 돈이 필요한 연도와 월을 선택하세요.</p>
-      <input
-        id="goal-date"
-        type="month"
-        min={minimum}
-        value={value}
-        aria-describedby="goal-date-hint"
-        onChange={(event) => onChange(event.target.value)}
-      />
-      <div className="quick-dates" aria-label="목표 날짜 빠른 선택">
-        {[3, 5, 10].map((years) => (
-          <button
-            type="button"
-            key={years}
-            aria-pressed={value === futureMonthValue(years)}
-            onClick={() => onChange(futureMonthValue(years))}
-          >
-            {years}년 후
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Progress({ current }: { current: number }) {
-  const labels = ["목표", "현재", "월 적립"];
-  return (
-    <div className="progress-wrap" aria-label={`계산 진행 ${current}/3`}>
-      <div className="progress-copy"><span>내 해결안 만들기</span><strong>{current}/3</strong></div>
-      <div className="progress-track" aria-hidden="true">
-        <span style={{ width: `${(current / 3) * 100}%` }} />
-      </div>
-      <div className="progress-steps" aria-hidden="true">
-        {labels.map((label, index) => <span className={index + 1 <= current ? "is-active" : ""} key={label}>{label}</span>)}
-      </div>
-    </div>
-  );
-}
-
-const helperQuestions: Array<{
-  key: keyof CashflowInput;
-  label: string;
-  hint: string;
-  quick: QuickAmount[];
-}> = [
-  {
-    key: "monthlyNetIncome",
-    label: "한 달 실수령액은 얼마인가요?",
-    hint: "통장에 실제로 들어오는 월급을 입력하세요.",
-    quick: [{ label: "250만 원", value: 250 }, { label: "350만 원", value: 350 }, { label: "500만 원", value: 500 }],
-  },
-  {
-    key: "fixedExpenses",
-    label: "한 달 고정비는 얼마인가요?",
-    hint: "월세, 관리비, 통신비, 보험료처럼 정기적인 지출입니다.",
-    quick: [{ label: "50만 원", value: 50 }, { label: "100만 원", value: 100 }, { label: "150만 원", value: 150 }],
-  },
-  {
-    key: "livingExpenses",
-    label: "한 달 생활비는 얼마인가요?",
-    hint: "식비, 교통비, 쇼핑 등 평균 생활비를 입력하세요.",
-    quick: [{ label: "50만 원", value: 50 }, { label: "100만 원", value: 100 }, { label: "150만 원", value: 150 }],
-  },
-  {
-    key: "debtPayments",
-    label: "한 달 대출 상환액은 얼마인가요?",
-    hint: "없다면 0원을 선택해도 됩니다.",
-    quick: [{ label: "0원", value: 0 }, { label: "30만 원", value: 30 }, { label: "50만 원", value: 50 }],
-  },
-];
-
-function CashflowHelper({
-  onComplete,
-  onClose,
-}: {
-  onComplete: (monthlyNetFlowManwon: number, values: CashflowInput) => void;
-  onClose: () => void;
-}) {
-  const [index, setIndex] = useState(0);
-  const [values, setValues] = useState<Record<keyof CashflowInput, number | null>>({
-    monthlyNetIncome: null,
-    fixedExpenses: null,
-    livingExpenses: null,
-    debtPayments: 0,
-  });
-  const question = helperQuestions[index];
-  const value = values[question.key];
-
-  function next() {
-    if (value === null) return;
-    if (index < helperQuestions.length - 1) {
-      setIndex(index + 1);
-      return;
-    }
-    const completeValues: CashflowInput = {
-      monthlyNetIncome: manwonToWon(values.monthlyNetIncome ?? 0),
-      fixedExpenses: manwonToWon(values.fixedExpenses ?? 0),
-      livingExpenses: manwonToWon(values.livingExpenses ?? 0),
-      debtPayments: manwonToWon(values.debtPayments ?? 0),
-    };
-    onComplete(wonToManwon(calculateMonthlyNetFlow(completeValues)), completeValues);
-  }
-
-  return (
-    <div className="helper-overlay" role="dialog" aria-modal="true" aria-labelledby="helper-title">
-      <div className="helper-card">
-        <button className="helper-close" type="button" onClick={onClose} aria-label="계산 도우미 닫기">×</button>
-        <div className="helper-progress">월급과 지출로 계산하기 <strong>{index + 1}/4</strong></div>
-        <h2 id="helper-title">{question.label}</h2>
-        <MoneyInput
-          id={`helper-${question.key}`}
-          label={question.label}
-          hint={question.hint}
-          value={value}
-          onChange={(nextValue) => setValues({ ...values, [question.key]: nextValue })}
-          quickAmounts={question.quick}
-          maxValue={MAX_MONTHLY_MANWON}
-        />
-        <div className="wizard-actions">
-          <button type="button" className="button button--quiet" onClick={() => index === 0 ? onClose() : setIndex(index - 1)}>
-            이전
-          </button>
-          <button type="button" className="button button--primary" disabled={value === null} onClick={next}>
-            {index === helperQuestions.length - 1 ? "매달 모을 돈 계산" : "다음"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AssetChart({
-  result,
-  goalAmount,
-  currentAmount,
-  horizonMonths,
-}: {
-  result: SimulationResult;
-  goalAmount: number;
-  currentAmount: number;
-  horizonMonths?: number;
-}) {
-  const horizon = Math.max(1, Math.min(horizonMonths ?? result.monthsToGoal ?? 120, 120));
-  const points = Array.from({ length: 9 }, (_, index) => {
-    if (index === 0) return { month: 0, balance: currentAmount };
-    const month = Math.max(1, Math.round((horizon * index) / 8));
-    return { month, balance: result.timeline[month - 1]?.closingBalance ?? 0 };
-  });
-  const maxValue = Math.max(goalAmount, ...points.map((point) => point.balance), 1);
-
-  return (
-    <div className="asset-chart" role="img" aria-label={`현재 ${formatCurrency(currentAmount)}에서 ${horizon}개월 동안의 예상 자산 변화`}>
-      <div className="chart-goal"><span>목표 {formatCurrency(goalAmount)}</span></div>
-      <div className="chart-bars" aria-hidden="true">
-        {points.map((point) => (
-          <div className="chart-bar-wrap" key={point.month}>
-            <span className="chart-bar" style={{ height: `${Math.max(4, (point.balance / maxValue) * 86)}%` }} />
-            <small>{point.month === 0 ? "지금" : `${point.month}개월`}</small>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function monthlyChangeCopy(amount: number): string {
@@ -423,29 +144,15 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
     });
   }, [autoStart]);
 
-  const baseInput = useMemo<SimulationInput | null>(() => {
-    if (goalManwon === null || currentManwon === null || monthlyManwon === null) return null;
-    return {
-      goalAmount: manwonToWon(goalManwon),
-      currentAmount: manwonToWon(currentManwon),
-      monthlyNetFlow: manwonToWon(monthlyManwon),
-      annualRate,
-      startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-      planningMode: cashflowValues ? "cashflow" : "direct",
-    };
-  }, [annualRate, cashflowValues, currentManwon, goalManwon, monthlyManwon]);
-
-  const result = useMemo(() => baseInput ? simulatePlan(baseInput) : null, [baseInput]);
-  const parsedGoalDate = useMemo(() => monthValueToDate(goalDate), [goalDate]);
-  const goalDateIsFuture = parsedGoalDate !== null && parsedGoalDate > new Date(
-    new Date().getFullYear(),
-    new Date().getMonth(),
-    1,
-  );
-  const goalAnalysis = useMemo(
-    () => baseInput && parsedGoalDate ? analyzeGoalPlan(baseInput, parsedGoalDate, feasibilityLimits) : null,
-    [baseInput, feasibilityLimits, parsedGoalDate],
-  );
+  const { baseInput, goalAnalysis, goalDateIsFuture, parsedGoalDate, result } = useMoneyGpsAnalysis({
+    annualRate,
+    cashflowMode: cashflowValues !== null,
+    currentManwon,
+    feasibilityLimits,
+    goalDate,
+    goalManwon,
+    monthlyManwon,
+  });
   const selectedActionPlan = selectedAction
     ? goalAnalysis?.actionPlans.find((plan) => plan.id === selectedAction) ?? null
     : null;
@@ -631,7 +338,9 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
     const updatedInput: SimulationInput = {
       goalAmount: savedPlan.goalAmount,
       currentAmount: manwonToWon(updateAmount),
-      monthlyNetFlow: savedPlan.actionPlan?.monthlyContribution ?? savedPlan.monthlyContribution,
+      monthlyNetFlow: selectedActionPlan?.monthlyContribution
+        ?? savedPlan.actionPlan?.monthlyContribution
+        ?? savedPlan.monthlyContribution,
       annualRate: savedPlan.annualRate,
       startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     };
@@ -647,6 +356,17 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
       arrivalDate: updatedResult.arrivalDate?.toISOString() ?? null,
       projectedAtTarget: updatedAnalysis.projectedAtTarget,
       shortage: updatedAnalysis.shortage,
+      actionPlan: selectedActionPlan
+        ? {
+            id: selectedActionPlan.id,
+            title: selectedActionPlan.title,
+            monthlyContribution: selectedActionPlan.monthlyContribution,
+            upfrontAmount: selectedActionPlan.upfrontAmount,
+            adjustedTargetDate: selectedActionPlan.adjustedTargetDate
+              ? dateToMonthValue(selectedActionPlan.adjustedTargetDate)
+              : null,
+          }
+        : savedPlan.actionPlan,
       completedActionSteps: [],
       checkins: [
         ...savedPlan.checkins,
@@ -853,7 +573,10 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
             <div className="preview-steps">
               <div><b>01</b><span>목표 금액과 날짜</span></div><div><b>02</b><span>지금까지 모은 돈</span></div><div><b>03</b><span>매달 모을 돈</span></div>
             </div>
-            <button className="button button--primary" type="button" disabled={!hydrated} onClick={startCalculation}>첫 질문 시작하기</button>
+            <div className="preview-actions">
+              <button className="button button--primary" type="button" disabled={!hydrated} onClick={startCalculation}>첫 질문 시작하기</button>
+              <button className="button button--quiet" type="button" disabled={!hydrated} onClick={() => importRef.current?.click()}>백업 불러오기</button>
+            </div>
           </div>
         ) : phase === "wizard" ? (
           <div className="wizard-card" onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
@@ -1136,7 +859,17 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
               <summary><span>결과 활용</span><strong>공유와 데이터 관리</strong><small>공유 문장에는 개인 금액을 넣지 않아요</small></summary>
               <section className="result-actions" aria-label="결과 공유와 데이터 관리">
                 <div><h2>결과 활용하기</h2><p>공유 기능에는 소득, 자산, 목표 금액을 넣지 않아요.</p></div>
-                <div className="action-buttons"><button className="button button--quiet" type="button" onClick={copyResult}>결과 문장 복사</button><button className="button button--quiet" type="button" onClick={shareResult}>기기로 공유</button><button className="button button--quiet" type="button" onClick={createShareCard}>공유 카드 만들기</button>{savedPlan && <><button className="button button--quiet" type="button" onClick={downloadBackup}>데이터 백업</button><button className="button button--quiet" type="button" onClick={() => importRef.current?.click()}>백업 불러오기</button><input className="visually-hidden" ref={importRef} type="file" accept="application/json" onChange={handleImport} /></>} </div>
+                <div className="action-buttons">
+                  <button className="button button--quiet" type="button" onClick={copyResult}>결과 문장 복사</button>
+                  <button className="button button--quiet" type="button" onClick={shareResult}>기기로 공유</button>
+                  <button className="button button--quiet" type="button" onClick={createShareCard}>공유 카드 만들기</button>
+                  {savedPlan && (
+                    <>
+                      <button className="button button--quiet" type="button" onClick={downloadBackup}>데이터 백업</button>
+                      <button className="button button--quiet" type="button" onClick={() => importRef.current?.click()}>백업 불러오기</button>
+                    </>
+                  )}
+                </div>
                 {savedPlan && <button className="delete-action" type="button" onClick={removeLocalData}>이 브라우저의 저장 데이터 삭제</button>}
               </section>
             </details>
@@ -1161,6 +894,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
         </section>
       )}
 
+      <input className="visually-hidden" ref={importRef} type="file" accept="application/json" onChange={handleImport} />
       <div className="toast" role="status" aria-live="polite">{statusMessage}</div>
     </main>
   );

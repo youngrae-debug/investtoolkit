@@ -1,4 +1,5 @@
-import { addMonths, annualToMonthlyRate } from "./engine";
+import { addMonths } from "./engine";
+import { monthlyGrowthFactors } from "./growth";
 import type { SimulationInput } from "./types";
 
 export type GoalActionPlanId = "monthly" | "upfront" | "timeline";
@@ -50,16 +51,6 @@ export function roundUpToDisplayUnit(value: number): number {
   return Math.ceil(value / DISPLAY_UNIT) * DISPLAY_UNIT;
 }
 
-function growthFactors(annualRate: number, months: number) {
-  const monthlyRate = annualToMonthlyRate(annualRate);
-  const balanceFactor = (1 + monthlyRate) ** months;
-  const contributionFactor =
-    monthlyRate === 0
-      ? months
-      : (balanceFactor - 1) / monthlyRate;
-  return { balanceFactor, contributionFactor };
-}
-
 export function projectedBalanceAtTarget({
   currentAmount,
   monthlyContribution,
@@ -74,7 +65,7 @@ export function projectedBalanceAtTarget({
   months: number;
 }): number {
   if (months <= 0) return currentAmount + upfrontAmount;
-  const { balanceFactor, contributionFactor } = growthFactors(annualRate, months);
+  const { balanceFactor, contributionFactor } = monthlyGrowthFactors(annualRate, months);
   return (
     (currentAmount + upfrontAmount) * balanceFactor +
     monthlyContribution * contributionFactor
@@ -95,7 +86,7 @@ export function requiredMonthlyContribution({
   months: number;
 }): number {
   if (months <= 0) return goalAmount <= currentAmount + upfrontAmount ? 0 : Number.POSITIVE_INFINITY;
-  const { balanceFactor, contributionFactor } = growthFactors(annualRate, months);
+  const { balanceFactor, contributionFactor } = monthlyGrowthFactors(annualRate, months);
   return Math.max(
     0,
     (goalAmount - (currentAmount + upfrontAmount) * balanceFactor) /
@@ -164,7 +155,7 @@ export function requiredUpfrontAmount({
   months: number;
 }): number {
   if (months <= 0) return Math.max(0, goalAmount - currentAmount);
-  const { balanceFactor, contributionFactor } = growthFactors(annualRate, months);
+  const { balanceFactor, contributionFactor } = monthlyGrowthFactors(annualRate, months);
   return Math.max(
     0,
     (goalAmount - currentAmount * balanceFactor - monthlyContribution * contributionFactor) /
@@ -196,7 +187,7 @@ export function analyzeGoalPlan(
   const requiredMonthly = Number.isFinite(rawRequiredMonthly)
     ? roundUpToDisplayUnit(rawRequiredMonthly)
     : rawRequiredMonthly;
-  const { balanceFactor } = growthFactors(input.annualRate, monthsRemaining);
+  const { balanceFactor } = monthlyGrowthFactors(input.annualRate, monthsRemaining);
   const rawUpfrontAmount = monthsRemaining <= 0
     ? shortage
     : shortage / balanceFactor;

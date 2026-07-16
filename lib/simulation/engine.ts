@@ -4,13 +4,11 @@ import type {
   SimulationInput,
   SimulationResult,
 } from "./types";
+import { advanceMonthlyBalance, annualToMonthlyRate } from "./growth";
+
+export { annualToMonthlyRate } from "./growth";
 
 export const MAX_SIMULATION_MONTHS = 1_200;
-
-export function annualToMonthlyRate(annualRate: number): number {
-  const boundedRate = Math.min(30, Math.max(-20, annualRate));
-  return Math.pow(1 + boundedRate / 100, 1 / 12) - 1;
-}
 
 export function calculateMonthlyNetFlow(input: CashflowInput): number {
   return (
@@ -85,7 +83,12 @@ export function simulatePlan(input: SimulationInput): SimulationResult {
       input.monthlyNetFlow,
     );
     const netFlow = input.monthlyNetFlow + recurringDelta;
-    balance = openingBalance + gain + netFlow + lumpSum;
+    balance = advanceMonthlyBalance({
+      openingBalance,
+      monthlyRate,
+      netFlow,
+      lumpSum,
+    });
     cumulativeNetFlow += netFlow + lumpSum;
     cumulativeInvestmentGain += gain;
 
@@ -137,4 +140,3 @@ export function monthDifference(
   if (baseMonths === null || changedMonths === null) return null;
   return baseMonths - changedMonths;
 }
-

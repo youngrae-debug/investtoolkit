@@ -1,0 +1,3 @@
+export const MAX_GOAL_MANWON = 100_000_000;
+export const MAX_CURRENT_MANWON = 100_000_000;
+export const MAX_MONTHLY_MANWON = 1_000_000;

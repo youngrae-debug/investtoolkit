@@ -3,8 +3,12 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import "./globals.css";
 
+const metadataBase = process.env.NODE_ENV === "production"
+  ? new URL("https://invetk.com")
+  : new URL("http://localhost:3000");
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://invetk.com"),
+  metadataBase,
   title: {
     default: "INVETK | 돈 목표 부족분 해결 도구",
     template: "%s | INVETK",
