@@ -197,3 +197,38 @@ test("shows an on-track result and recalculates when the return assumption chang
   await expect(page.locator(".result-route-label")).toContainText("연 4% 계산 가정");
   await expect(page.locator("#calculator-title")).not.toHaveText("2,000만 원 여유");
 });
+
+test("finds a policy benefit and calculates only a confirmed support amount", async ({ page }) => {
+  await createResult(page);
+
+  await page.getByRole("button", { name: "내 혜택 가능성 확인" }).click();
+  await page.locator("#policy-age").fill("29");
+  await page.getByRole("combobox", { name: "지난해 소득 형태" }).selectOption("salary");
+  await page.getByRole("textbox", { name: "지난해 총급여", exact: true }).fill("3600");
+  await page.getByRole("combobox", { name: "함께 심사되는 가구원 수" }).selectOption("1");
+  await page.getByRole("textbox", { name: "가구원의 지난해 세전 소득 합계", exact: true }).fill("3600");
+  await page.getByRole("combobox", { name: "가구의 복지 자격" }).selectOption("other");
+  await page.getByRole("button", { name: "가능한 정책 확인" }).click();
+
+  const youthPolicy = page.getByRole("article").filter({ hasText: "청년미래적금" });
+  await expect(youthPolicy).toContainText("대상 가능성 있음");
+  await expect(youthPolicy).toContainText("2026년 첫 신청 종료");
+  await youthPolicy.getByRole("button", { name: "목표 영향 계산" }).click();
+
+  await page.getByRole("textbox", { name: "확인한 월 지원액", exact: true }).fill("10");
+  await page.getByRole("checkbox", { name: "공식 안내에서 지원액과 지원 기간을 확인했습니다." }).check();
+  await expect(page.locator(".policy-impact-result__lead")).toContainText("부족분이 360만 원 줄어요");
+  await expect(page.locator(".policy-impact-grid")).toContainText("목표일까지 지원금 원금360만 원");
+});
+
+test("opens policy benefits from its own menu and removes the duplicate comparison menu", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "메뉴 열기" }).click();
+  await expect(page.getByRole("link", { name: "정책 혜택" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "선택 비교" })).toHaveCount(0);
+  await page.getByRole("link", { name: "정책 혜택" }).click();
+
+  await expect(page.getByRole("heading", { name: /놓치고 있던 정책 혜택까지/ })).toBeVisible();
+  await expect(page.getByRole("group", { name: "간단한 조건 확인" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "함께 심사되는 가구원 수" })).toBeVisible();
+});

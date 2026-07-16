@@ -15,7 +15,7 @@ export function SiteHeader() {
         </Link>
         <nav id="site-menu" className={`site-nav ${menuOpen ? "is-open" : ""}`} aria-label="주요 메뉴">
           <Link href="/money-gps" onClick={() => setMenuOpen(false)}>Money GPS</Link>
-          <Link href="/money-gps#conditions" onClick={() => setMenuOpen(false)}>선택 비교</Link>
+          <Link href="/policy-benefits" onClick={() => setMenuOpen(false)}>정책 혜택</Link>
           <Link href="/guides" onClick={() => setMenuOpen(false)}>가이드</Link>
           <Link href="/methodology" onClick={() => setMenuOpen(false)}>계산 기준</Link>
           <Link href="/about" onClick={() => setMenuOpen(false)}>소개</Link>

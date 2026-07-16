@@ -38,6 +38,7 @@ import { CashflowHelper } from "./cashflow-helper";
 import { MAX_CURRENT_MANWON, MAX_GOAL_MANWON, MAX_MONTHLY_MANWON } from "./constants";
 import { GoalDateInput } from "./goal-date-input";
 import { MoneyInput } from "./money-input";
+import { PolicyBenefitFinder } from "./policy-benefit-finder";
 import { Progress } from "./progress";
 import { useMoneyGpsAnalysis } from "./use-money-gps-analysis";
 
@@ -667,7 +668,8 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
             <nav className="result-jump-nav" aria-label="결과 바로가기">
               <a href="#solutions"><span>1</span> 해결책 비교</a>
               <a href="#monthly-action"><span>2</span> 이번 달 행동</a>
-              <a href="#conditions"><span>3</span> 조건 바꿔보기</a>
+              <a href="#policy-benefits"><span>3</span> 정책 혜택</a>
+              <a href="#conditions"><span>4</span> 조건 바꿔보기</a>
             </nav>
 
             <details className="feasibility-panel">
@@ -715,7 +717,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
                 {goalAnalysis.actionPlans.map((plan, index) => {
                   const selected = selectedActionPlan?.id === plan.id;
                   return (
-                    <article className={`solution-card ${selected ? "solution-card--selected" : ""} ${!plan.feasible ? "solution-card--limited" : ""}`} key={plan.id} aria-label={`${plan.title}${selected ? ", 선택됨" : ""}${!plan.feasible ? ", 현재 조건으로 달성 시점을 계산하기 어려움" : ""}`}>
+                    <article className={`solution-card solution-card--${plan.id} ${selected ? "solution-card--selected" : ""} ${!plan.feasible ? "solution-card--limited" : ""}`} key={plan.id} aria-label={`${plan.title}${selected ? ", 선택됨" : ""}${!plan.feasible ? ", 현재 조건으로 달성 시점을 계산하기 어려움" : ""}`}>
                       <div className="solution-card__top"><span>방법 {index + 1}</span><div><em>{actionPlanTrait(plan.id, goalAnalysis.onTrack)}</em>{selected && <b>선택됨</b>}</div></div>
                       <h3>{plan.title}</h3>
                       <div className="solution-numbers">
@@ -770,6 +772,8 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
                 </div>
               )}
             </section>
+
+            <PolicyBenefitFinder input={baseInput} targetMonths={goalAnalysis.monthsRemaining} />
 
             <section className="result-section core-inputs" aria-labelledby="inputs-title">
               <div className="section-heading"><div><span className="section-kicker">계산에 쓴 계획</span><h2 id="inputs-title">입력한 조건 한눈에 보기</h2></div><button type="button" className="text-action" onClick={() => { setPhase("wizard"); setStep(1); }}>조건 수정</button></div>
@@ -874,7 +878,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
               </section>
             </details>
 
-            <div className="disclaimer">본 결과는 입력한 값과 가정을 바탕으로 계산한 참고용 예상치입니다. 실제 수익, 세금, 수수료, 물가, 소득과 지출은 달라질 수 있습니다. INVETK는 특정 금융상품의 가입·매수·매도를 권유하지 않습니다.</div>
+            <div className="disclaimer">본 결과는 입력한 값과 가정을 바탕으로 계산한 참고용 예상치입니다. 실제 수익, 세금, 수수료, 물가, 소득과 지출은 달라질 수 있습니다. 정책 혜택의 대상 가능성은 간이 확인이며 최종 가입 자격과 지급액은 공식 심사를 따라야 합니다. INVETK는 특정 금융상품의 가입·매수·매도를 권유하지 않습니다.</div>
             <button className="restart-button" type="button" onClick={() => { setPhase("wizard"); setStep(1); setAnnualRate(0); setSelectedAction(null); setCompletedActionSteps([]); setFeasibilityLimits(null); setMonthlyExtraLimitManwon(null); setUpfrontLimitManwon(null); setEditingPlanId(null); }}>처음부터 다시 계산</button>
           </div>
         ) : null}

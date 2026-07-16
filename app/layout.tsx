@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     template: "%s | INVETK",
   },
   description:
-    "목표와 현재 계획을 입력하면 예상 목표 충족률과 부족분을 진단하고, 월 적립·목돈·기간 조정 해결책과 이번 달 실행 계획을 제공합니다.",
+    "목표와 현재 계획을 입력하면 부족분과 세 가지 해결책을 진단하고, 놓치기 쉬운 정책 혜택과 이번 달 실행 계획까지 제공합니다.",
   alternates: { canonical: "/" },
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
   openGraph: {
