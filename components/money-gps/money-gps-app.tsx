@@ -74,11 +74,11 @@ function shortageChangeCopy(change: number): string {
 function actionPlanTrait(id: GoalActionPlanId, onTrack: boolean): string {
   if (onTrack) {
     if (id === "monthly") return "현재대로";
-    if (id === "upfront") return "월 부담 낮춤";
+    if (id === "balanced") return "월 부담 낮춤";
     return "기간 확인";
   }
   if (id === "monthly") return "목돈 없이";
-  if (id === "upfront") return "월 부담 유지";
+  if (id === "balanced") return "월+목돈";
   return "기간 조정";
 }
 
@@ -174,7 +174,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
             ? selectedActionPlan.adjustedTargetDate
               ? `목표 날짜를 ${formatArrivalDate(selectedActionPlan.adjustedTargetDate)}로 조정하기`
               : "달성 가능한 목표 날짜를 다시 정하기"
-            : `월 자동이체를 ${formatCurrency(selectedActionPlan.monthlyContribution)}로 설정하기`,
+            : `월 자동이체를 ${formatCurrency(selectedActionPlan.monthlyContribution)}으로 설정하기`,
           description: selectedActionPlan.id === "timeline"
             ? "월 적립 부담은 유지하고 달성 가능한 날짜를 계획에 반영하세요."
             : "목표 전용 계좌로 분리하면 월말 확인이 쉬워져요.",
@@ -432,7 +432,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
       `[INVETK 이번 달 행동 계획 · ${selectedActionPlan.title}]`,
       selectedActionPlan.id === "timeline"
         ? `1. 목표 날짜를 ${formatArrivalDate(selectedActionPlan.adjustedTargetDate)}로 조정하기`
-        : `1. 월 자동이체를 ${formatCurrency(selectedActionPlan.monthlyContribution)}로 설정하기`,
+        : `1. 월 자동이체를 ${formatCurrency(selectedActionPlan.monthlyContribution)}으로 설정하기`,
       selectedActionPlan.id === "timeline"
         ? `2. 월 자동이체 ${formatCurrency(selectedActionPlan.monthlyContribution)} 유지하기`
         : selectedActionPlan.upfrontAmount > 0
@@ -546,7 +546,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
                 <div><small>5년 뒤 목표</small><strong>1억 원</strong></div>
               </div>
               <div className="route-arrival"><span>예상 부족분</span><strong>1,000만 원</strong></div>
-              <div className="route-solution"><span>해결 예시</span><strong>월 +17만 · 목돈 1,000만 · 기간 +10개월</strong></div>
+              <div className="route-solution"><span>해결 예시</span><strong>월 +17만 · 월 +9만과 목돈 500만 · 기간 +10개월</strong></div>
               <p>세 해결책은 입력값을 바탕으로 한 계산 예시이며 금융상품 추천이 아닙니다.</p>
             </div>
           </section>
@@ -644,7 +644,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
               <p className="result-verdict">
                 {goalAnalysis.onTrack
                   ? "지금 계획을 이어가면 원하는 날짜에 목표를 맞출 수 있어요."
-                  : "지금 계획만으로는 부족하지만, 월 적립·목돈·기간 중 한 가지를 조정해 해결할 수 있어요."}
+                  : "지금 계획만으로는 부족하지만, 월 적립 확대·월 적립과 목돈 조합·기간 조정 중에서 선택할 수 있어요."}
               </p>
               <div className="target-status-grid">
                 <div><span>원하는 목표 날짜</span><strong>{formatArrivalDate(goalAnalysis.targetDate)}</strong></div>
@@ -678,7 +678,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
                 <small>{feasibilityLimits ? "가능 범위 적용됨" : "월 추가금과 여유자금을 입력할 수 있어요"}</small>
               </summary>
               <div className="feasibility-panel__body">
-                <p>실제로 감당할 수 있는 최대 금액을 알려주면, 월 적립과 목돈 해결책을 그 범위 안에서 다시 계산합니다. 기간 조정안은 현재 적립 계획을 유지하는 기준입니다.</p>
+                <p>실제로 감당할 수 있는 최대 금액을 알려주면, 월 적립안과 월 적립·여유자금 혼합안을 그 범위 안에서 다시 계산합니다. 기간 조정안은 현재 적립 계획을 유지하는 기준입니다.</p>
                 <div className="feasibility-grid">
                   <MoneyInput
                     id="monthly-extra-limit"
@@ -712,7 +712,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
             </details>
 
             <section id="solutions" className="result-section solution-section" aria-labelledby="solutions-title">
-              <div className="section-heading"><div><span className="section-kicker">해결책 3개</span><h2 id="solutions-title">{goalAnalysis.onTrack ? "현재 계획을 활용하는 세 가지 방법" : "부족분을 해결하는 세 가지 방법"}</h2><p>월 적립 확대, 목돈 추가, 기간 조정 중 하나를 고르면 이번 달 실행 계획으로 바꿔드려요.</p></div></div>
+              <div className="section-heading"><div><span className="section-kicker">해결책 3개</span><h2 id="solutions-title">{goalAnalysis.onTrack ? "현재 계획을 활용하는 세 가지 방법" : "부족분을 해결하는 세 가지 방법"}</h2><p>월 적립 확대, 월 적립·시작 자금 조합, 기간 조정 중 하나를 고르면 이번 달 실행 계획으로 바꿔드려요.</p></div></div>
               <div className="solution-grid" role="group" aria-label="목표 날짜 실행안 선택">
                 {goalAnalysis.actionPlans.map((plan, index) => {
                   const selected = selectedActionPlan?.id === plan.id;

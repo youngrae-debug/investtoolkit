@@ -2,7 +2,7 @@ import { addMonths } from "./engine";
 import { monthlyGrowthFactors } from "./growth";
 import type { SimulationInput } from "./types";
 
-export type GoalActionPlanId = "monthly" | "upfront" | "timeline";
+export type GoalActionPlanId = "monthly" | "balanced" | "timeline";
 
 export interface GoalFeasibilityLimits {
   maxMonthlyIncrease: number;
@@ -192,6 +192,17 @@ export function analyzeGoalPlan(
     ? shortage
     : shortage / balanceFactor;
   const upfrontAmountNeeded = roundUpToDisplayUnit(rawUpfrontAmount);
+  const balancedUpfrontTarget = roundUpToDisplayUnit(rawUpfrontAmount / 2);
+  const rawBalancedMonthly = requiredMonthlyContribution({
+    goalAmount: input.goalAmount,
+    currentAmount: input.currentAmount,
+    upfrontAmount: balancedUpfrontTarget,
+    annualRate: input.annualRate,
+    months: monthsRemaining,
+  });
+  const balancedMonthly = Number.isFinite(rawBalancedMonthly)
+    ? roundUpToDisplayUnit(rawBalancedMonthly)
+    : rawBalancedMonthly;
   const onTrack = shortage <= 0;
   const adjustedTimelineMonths = monthsToReachGoal(input);
 
@@ -200,7 +211,7 @@ export function analyzeGoalPlan(
   if (onTrack) {
     actionPlans = [
       buildPlan("monthly", "현재 계획 유지", input, monthsRemaining, input.monthlyNetFlow, 0),
-      buildPlan("upfront", "월 적립 부담 낮추기", input, monthsRemaining, requiredMonthly, 0),
+      buildPlan("balanced", "월 적립 부담 낮추기", input, monthsRemaining, requiredMonthly, 0),
       buildPlan("timeline", "현재 속도의 도착일 보기", input, monthsRemaining, input.monthlyNetFlow, 0, adjustedTimelineMonths),
     ];
   } else if (feasibilityLimits) {
@@ -208,16 +219,38 @@ export function analyzeGoalPlan(
     const maxUpfrontAmount = Math.max(0, feasibilityLimits.maxUpfrontAmount);
     const maxMonthlyContribution = input.monthlyNetFlow + maxMonthlyIncrease;
     const monthlyOnlyContribution = Math.min(requiredMonthly, maxMonthlyContribution);
-    const upfrontOnlyAmount = Math.min(upfrontAmountNeeded, maxUpfrontAmount);
+    let balancedUpfrontAmount = Math.min(balancedUpfrontTarget, maxUpfrontAmount);
+    const rawLimitedBalancedMonthly = requiredMonthlyContribution({
+      goalAmount: input.goalAmount,
+      currentAmount: input.currentAmount,
+      upfrontAmount: balancedUpfrontAmount,
+      annualRate: input.annualRate,
+      months: monthsRemaining,
+    });
+    const limitedBalancedMonthly = Number.isFinite(rawLimitedBalancedMonthly)
+      ? roundUpToDisplayUnit(rawLimitedBalancedMonthly)
+      : rawLimitedBalancedMonthly;
+    const balancedMonthlyContribution = Math.min(limitedBalancedMonthly, maxMonthlyContribution);
+    const balancedUpfrontNeeded = roundUpToDisplayUnit(requiredUpfrontAmount({
+      goalAmount: input.goalAmount,
+      currentAmount: input.currentAmount,
+      monthlyContribution: balancedMonthlyContribution,
+      annualRate: input.annualRate,
+      months: monthsRemaining,
+    }));
+    balancedUpfrontAmount = Math.min(
+      Math.max(balancedUpfrontAmount, balancedUpfrontNeeded),
+      maxUpfrontAmount,
+    );
     actionPlans = [
       buildPlan("monthly", "매달 가능한 만큼 채우기", input, monthsRemaining, monthlyOnlyContribution, 0),
-      buildPlan("upfront", "여유자금 안에서 채우기", input, monthsRemaining, input.monthlyNetFlow, upfrontOnlyAmount),
+      buildPlan("balanced", "가능 범위 함께 쓰기", input, monthsRemaining, balancedMonthlyContribution, balancedUpfrontAmount),
       buildPlan("timeline", "목표 날짜 조정하기", input, monthsRemaining, input.monthlyNetFlow, 0, adjustedTimelineMonths),
     ];
   } else {
     actionPlans = [
       buildPlan("monthly", "매달 나눠 채우기", input, monthsRemaining, requiredMonthly, 0),
-      buildPlan("upfront", "시작 자금으로 채우기", input, monthsRemaining, input.monthlyNetFlow, upfrontAmountNeeded),
+      buildPlan("balanced", "월 적립과 시작 자금 나눠 채우기", input, monthsRemaining, balancedMonthly, balancedUpfrontTarget),
       buildPlan("timeline", "목표 날짜 조정하기", input, monthsRemaining, input.monthlyNetFlow, 0, adjustedTimelineMonths),
     ];
   }

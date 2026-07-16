@@ -54,10 +54,13 @@ test("creates three goal-date solutions and restores a saved plan", async ({ pag
   await page.getByRole("button", { name: /매달 10만 원 더 모으기/ }).click();
   await expect(page.locator(".comparison-card").filter({ hasText: "매달 10만 원 더 모으기" })).toContainText("부족분 600만 원 감소");
 
-  const upfrontPlan = page.getByRole("article", { name: /시작 자금으로 채우기/ });
-  await upfrontPlan.getByRole("button", { name: "이 방법으로 계획 보기" }).click();
+  const balancedPlan = page.getByRole("article", { name: /월 적립과 시작 자금 나눠 채우기/ });
+  await expect(balancedPlan).toContainText("109만 원");
+  await expect(balancedPlan).toContainText("500만 원");
+  await balancedPlan.getByRole("button", { name: "이 방법으로 계획 보기" }).click();
   await expect(page.getByRole("heading", { name: "이번 달은 이렇게 시작하세요" })).toBeVisible();
-  await expect(page.locator("#monthly-action")).toContainText("시작 자금 1,000만 원 보태기");
+  await expect(page.locator("#monthly-action")).toContainText("월 자동이체를 109만 원으로 설정하기");
+  await expect(page.locator("#monthly-action")).toContainText("시작 자금 500만 원 보태기");
   await page.getByRole("checkbox", { name: "오늘 행동 완료 표시" }).check();
   await expect(page.locator("#monthly-action")).toContainText("1/3 완료");
 
@@ -67,7 +70,7 @@ test("creates three goal-date solutions and restores a saved plan", async ({ pag
   await expect(page.getByRole("heading", { name: "나의 목표 계획의 경로를 이어볼까요?" })).toBeVisible();
   await expect(page.getByRole("button", { name: "이번 달 업데이트" })).toBeVisible();
   await page.getByRole("button", { name: "계획 다시 보기" }).click();
-  await expect(page.getByRole("article", { name: /시작 자금으로 채우기, 선택됨/ })).toBeVisible();
+  await expect(page.getByRole("article", { name: /월 적립과 시작 자금 나눠 채우기, 선택됨/ })).toBeVisible();
   await expect(page.locator("#monthly-action")).toContainText("1/3 완료");
 
   await page.getByText("내가 가능한 범위로 실행안 맞추기").click();
@@ -76,6 +79,7 @@ test("creates three goal-date solutions and restores a saved plan", async ({ pag
   await page.getByRole("button", { name: "가능 범위로 다시 계산" }).click();
   await expect(page.getByRole("heading", { name: "목표 날짜 조정하기" })).toBeVisible();
   await expect(page.getByRole("article", { name: /매달 가능한 만큼 채우기/ })).toContainText("목표일에 400만 원 부족");
+  await expect(page.getByRole("article", { name: /가능 범위 함께 쓰기/ })).toContainText("목표 금액 도달");
 });
 
 test("blocks unsafe amount ranges and requires a future target date", async ({ page }) => {
@@ -116,7 +120,7 @@ test("updates a saved limited plan and records the shortage change", async ({ pa
 
 test("exports a saved plan and restores the backup", async ({ page }, testInfo) => {
   await createResult(page);
-  await page.getByRole("article", { name: /시작 자금으로 채우기/ }).getByRole("button").click();
+  await page.getByRole("article", { name: /월 적립과 시작 자금 나눠 채우기/ }).getByRole("button").click();
   await page.getByRole("button", { name: "계획 저장" }).click();
 
   await page.getByText("공유와 데이터 관리").click();
@@ -223,10 +227,11 @@ test("finds a policy benefit and calculates only a confirmed support amount", as
 
 test("opens policy benefits from its own menu and removes the duplicate comparison menu", async ({ page }) => {
   await page.goto("/");
+  await expect(page.locator("main[data-hydrated='true']")).toBeVisible();
   await page.getByRole("button", { name: "메뉴 열기" }).click();
-  await expect(page.getByRole("link", { name: "정책 혜택" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "정책 혜택", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "선택 비교" })).toHaveCount(0);
-  await page.getByRole("link", { name: "정책 혜택" }).click();
+  await page.getByRole("link", { name: "정책 혜택", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: /놓치고 있던 정책 혜택까지/ })).toBeVisible();
   await expect(page.getByRole("group", { name: "간단한 조건 확인" })).toBeVisible();

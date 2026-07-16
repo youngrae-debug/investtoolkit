@@ -67,13 +67,13 @@ describe("saved plan migration", () => {
       arrivalDate: "2032-05-01T00:00:00.000Z",
       projectedAtTarget: 100_000_000,
       shortage: 0,
-      actionPlan: { id: "timeline", title: "목표 날짜 조정하기", monthlyContribution: 1_000_000, upfrontAmount: 0, adjustedTargetDate: "2032-05" },
+      actionPlan: { id: "balanced", title: "월 적립과 시작 자금 나눠 채우기", monthlyContribution: 1_090_000, upfrontAmount: 5_000_000, adjustedTargetDate: "2031-07" },
       completedActionSteps: [0, 2],
       feasibilityLimits: { maxMonthlyIncrease: 100_000, maxUpfrontAmount: 5_000_000 },
       checkins: [],
     }));
 
-    expect(plan.actionPlan?.id).toBe("timeline");
+    expect(plan.actionPlan?.id).toBe("balanced");
     expect(plan.completedActionSteps).toEqual([0, 2]);
     expect(plan.feasibilityLimits?.maxUpfrontAmount).toBe(5_000_000);
   });
@@ -95,6 +95,31 @@ describe("saved plan migration", () => {
       actionPlan: { id: "balanced", title: "가능 범위 함께 쓰기", monthlyContribution: 1_100_000, upfrontAmount: 4_000_000 },
       completedActionSteps: [0, 1],
       feasibilityLimits: { maxMonthlyIncrease: 100_000, maxUpfrontAmount: 5_000_000 },
+      checkins: [],
+    }));
+
+    expect(plan.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(plan.actionPlan).toBeNull();
+    expect(plan.completedActionSteps).toEqual([]);
+  });
+
+  it("removes a retired upfront-only action when moving a version 4 plan", () => {
+    const plan = importBackup(JSON.stringify({
+      schemaVersion: 4,
+      id: "upfront-plan",
+      name: "기존 목돈 계획",
+      savedAt: "2026-07-15T00:00:00.000Z",
+      goalAmount: 100_000_000,
+      currentAmount: 30_000_000,
+      monthlyContribution: 1_000_000,
+      annualRate: 0,
+      targetDate: "2031-07",
+      arrivalDate: "2031-07-01T00:00:00.000Z",
+      projectedAtTarget: 100_000_000,
+      shortage: 0,
+      actionPlan: { id: "upfront", title: "시작 자금으로 채우기", monthlyContribution: 1_000_000, upfrontAmount: 10_000_000, adjustedTargetDate: "2031-07" },
+      completedActionSteps: [0, 1],
+      feasibilityLimits: null,
       checkins: [],
     }));
 

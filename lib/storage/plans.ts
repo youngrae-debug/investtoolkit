@@ -1,9 +1,10 @@
 import { z } from "zod";
 
 export const STORAGE_KEY = "invetk-money-gps";
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
-const goalActionPlanIdSchema = z.enum(["monthly", "upfront", "timeline"]);
+const goalActionPlanIdSchema = z.enum(["monthly", "balanced", "timeline"]);
+const versionFourGoalActionPlanIdSchema = z.enum(["monthly", "upfront", "timeline"]);
 const versionThreeGoalActionPlanIdSchema = z.enum(["monthly", "upfront", "balanced"]);
 
 const legacyCheckinSchema = z.object({
@@ -26,6 +27,14 @@ const checkinSchema = z.object({
 
 const actionPlanSnapshotSchema = z.object({
   id: goalActionPlanIdSchema,
+  title: z.string().min(1).max(60),
+  monthlyContribution: z.number(),
+  upfrontAmount: z.number().nonnegative(),
+  adjustedTargetDate: z.string().regex(/^\d{4}-\d{2}$/).nullable(),
+});
+
+const versionFourActionPlanSnapshotSchema = z.object({
+  id: versionFourGoalActionPlanIdSchema,
   title: z.string().min(1).max(60),
   monthlyContribution: z.number(),
   upfrontAmount: z.number().nonnegative(),
@@ -90,6 +99,25 @@ const versionThreeSavedPlanSchema = z.object({
   checkins: z.array(checkinSchema),
 });
 
+const versionFourSavedPlanSchema = z.object({
+  schemaVersion: z.literal(4),
+  id: z.string(),
+  name: z.string().min(1).max(60),
+  savedAt: z.string(),
+  goalAmount: z.number().positive(),
+  currentAmount: z.number().nonnegative(),
+  monthlyContribution: z.number(),
+  annualRate: z.number().min(-20).max(30),
+  targetDate: z.string().regex(/^\d{4}-\d{2}$/),
+  arrivalDate: z.string().nullable(),
+  projectedAtTarget: z.number().nullable(),
+  shortage: z.number().nonnegative().nullable(),
+  actionPlan: versionFourActionPlanSnapshotSchema.nullable(),
+  completedActionSteps: z.array(z.number().int().min(0).max(2)),
+  feasibilityLimits: feasibilityLimitsSchema.nullable(),
+  checkins: z.array(checkinSchema),
+});
+
 const savedPlanSchema = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION),
   id: z.string(),
@@ -137,8 +165,8 @@ function upgradeVersionTwo(plan: z.infer<typeof versionTwoSavedPlanSchema>): Sav
 }
 
 function upgradeVersionThree(plan: z.infer<typeof versionThreeSavedPlanSchema>): SavedPlan {
-  const removedBalancedPlan = plan.actionPlan?.id === "balanced";
-  const retainedActionPlan = plan.actionPlan && !removedBalancedPlan
+  const removedActionPlan = plan.actionPlan?.id === "balanced" || plan.actionPlan?.id === "upfront";
+  const retainedActionPlan = plan.actionPlan && !removedActionPlan
     ? {
         ...plan.actionPlan,
         adjustedTargetDate: plan.targetDate,
@@ -149,13 +177,26 @@ function upgradeVersionThree(plan: z.infer<typeof versionThreeSavedPlanSchema>):
     ...plan,
     schemaVersion: SCHEMA_VERSION,
     actionPlan: retainedActionPlan,
-    completedActionSteps: removedBalancedPlan ? [] : plan.completedActionSteps,
+    completedActionSteps: removedActionPlan ? [] : plan.completedActionSteps,
+  });
+}
+
+function upgradeVersionFour(plan: z.infer<typeof versionFourSavedPlanSchema>): SavedPlan {
+  const removedUpfrontPlan = plan.actionPlan?.id === "upfront";
+  return savedPlanSchema.parse({
+    ...plan,
+    schemaVersion: SCHEMA_VERSION,
+    actionPlan: removedUpfrontPlan ? null : plan.actionPlan,
+    completedActionSteps: removedUpfrontPlan ? [] : plan.completedActionSteps,
   });
 }
 
 function migrateSavedPlan(value: unknown): SavedPlan {
   const current = savedPlanSchema.safeParse(value);
   if (current.success) return current.data;
+
+  const versionFour = versionFourSavedPlanSchema.safeParse(value);
+  if (versionFour.success) return upgradeVersionFour(versionFour.data);
 
   const versionThree = versionThreeSavedPlanSchema.safeParse(value);
   if (versionThree.success) return upgradeVersionThree(versionThree.data);

@@ -25,11 +25,14 @@ describe("goal date solver", () => {
 
   it("returns three plans that each meet an underfunded goal", () => {
     const analysis = analyzeGoalPlan({ goalAmount: 100_000_000, currentAmount: 30_000_000, monthlyNetFlow: 1_000_000, annualRate: 0, startDate }, targetDate);
+    const balanced = analysis.actionPlans.find((plan) => plan.id === "balanced");
     expect(analysis.shortage).toBe(10_000_000);
     expect(analysis.requiredMonthlyContribution).toBe(1_170_000);
     expect(analysis.monthlyIncreaseNeeded).toBe(170_000);
     expect(analysis.actionPlans).toHaveLength(3);
     expect(analysis.actionPlans.every((plan) => plan.projectedAtTarget >= 100_000_000)).toBe(true);
+    expect(balanced?.monthlyContribution).toBe(1_090_000);
+    expect(balanced?.upfrontAmount).toBe(5_000_000);
   });
 
   it("offers maintenance, minimum, and buffer plans when already on track", () => {
@@ -73,12 +76,14 @@ describe("goal date solver", () => {
     );
 
     const monthly = analysis.actionPlans.find((plan) => plan.id === "monthly");
-    const upfront = analysis.actionPlans.find((plan) => plan.id === "upfront");
+    const balanced = analysis.actionPlans.find((plan) => plan.id === "balanced");
     const timeline = analysis.actionPlans.find((plan) => plan.id === "timeline");
     expect(monthly?.monthlyIncrease).toBe(100_000);
     expect(monthly?.shortageAtTarget).toBe(4_000_000);
-    expect(upfront?.upfrontAmount).toBe(5_000_000);
-    expect(upfront?.shortageAtTarget).toBe(5_000_000);
+    expect(balanced?.monthlyIncrease).toBe(90_000);
+    expect(balanced?.upfrontAmount).toBe(5_000_000);
+    expect(balanced?.shortageAtTarget).toBe(0);
+    expect(balanced?.feasible).toBe(true);
     expect(timeline?.monthlyIncrease).toBe(0);
     expect(timeline?.upfrontAmount).toBe(0);
     expect(timeline?.monthAdjustment).toBe(10);
@@ -93,7 +98,7 @@ describe("goal date solver", () => {
     );
 
     expect(analysis.actionPlans.find((plan) => plan.id === "monthly")?.feasible).toBe(false);
-    expect(analysis.actionPlans.find((plan) => plan.id === "upfront")?.feasible).toBe(false);
+    expect(analysis.actionPlans.find((plan) => plan.id === "balanced")?.feasible).toBe(false);
     expect(analysis.actionPlans.find((plan) => plan.id === "timeline")?.feasible).toBe(true);
     expect(analysis.actionPlans.find((plan) => plan.id === "timeline")?.monthAdjustment).toBe(10);
   });
