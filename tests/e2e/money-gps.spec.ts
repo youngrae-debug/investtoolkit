@@ -1,5 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("invetk-analytics-consent", "denied");
+  });
+});
+
 function futureTargetMonth(years = 5): string {
   const now = new Date();
   return `${now.getFullYear() + years}-${String(now.getMonth() + 1).padStart(2, "0")}`;

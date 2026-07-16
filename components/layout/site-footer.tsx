@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 
 export function SiteFooter() {
   return (
@@ -14,11 +15,12 @@ export function SiteFooter() {
           <Link href="/methodology">계산 기준</Link>
           <Link href="/privacy">개인정보처리방침</Link>
           <Link href="/terms">이용약관·금융 면책</Link>
+          <AnalyticsSettingsButton />
         </div>
       </div>
       <div className="site-footer__bottom">
         <span>© 2026 INVETK</span>
-        <span>invetk.com · 마지막 업데이트 2026년 7월 16일</span>
+        <span>invetk.com · 마지막 업데이트 2026년 7월 17일</span>
       </div>
     </footer>
   );

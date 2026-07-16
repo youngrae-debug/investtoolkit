@@ -44,7 +44,7 @@ import { useMoneyGpsAnalysis } from "./use-money-gps-analysis";
 
 declare global {
   interface Window {
-    dataLayer?: Array<Record<string, unknown>>;
+    dataLayer?: Array<IArguments | Record<string, unknown>>;
   }
 }
 
