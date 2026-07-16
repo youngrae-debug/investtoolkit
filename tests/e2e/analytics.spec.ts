@@ -54,5 +54,6 @@ test("sends calculator milestones through gtag without financial values", async 
   expect(completionParameters).toEqual({
     page_path: "/money-gps",
     result_status: "calculated",
+    send_to: "G-PQ2T0TH6JX",
   });
 });

@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { GOOGLE_ANALYTICS_ID } from "@/lib/analytics/config";
 import { formatCurrency, manwonToWon, wonToManwon } from "@/lib/format/currency";
 import { formatArrivalDate } from "@/lib/format/date";
 import { formatDuration } from "@/lib/format/duration";
@@ -58,6 +59,7 @@ function trackEvent(eventName: string, properties: Record<string, string | numbe
   if (typeof window === "undefined" || !window.gtag) return;
   window.gtag("event", eventName, {
     page_path: window.location.pathname,
+    send_to: GOOGLE_ANALYTICS_ID,
     ...properties,
   });
 }

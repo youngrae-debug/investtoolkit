@@ -94,6 +94,7 @@ export function GoogleAnalytics() {
       page_location: `${window.location.origin}${pathname}`,
       page_path: pathname,
       page_title: document.title,
+      send_to: GOOGLE_ANALYTICS_ID,
     });
   }, [consent, pathname]);
 
