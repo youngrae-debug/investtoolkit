@@ -1,16 +1,21 @@
-import type { Metadata } from "next";
 import Link from "next/link";
+import { JsonLd } from "@/components/seo/json-ld";
 import { guides } from "@/content/guides";
+import { createPageMetadata } from "@/lib/seo/site";
+import { createGuidesCollectionStructuredData } from "@/lib/seo/structured-data";
 
-export const metadata: Metadata = {
-  title: "자산 목표 계산 가이드",
-  description: "1억 모으기, 생활비 절약, 보너스와 자동차 구매가 목표일에 미치는 영향을 쉬운 계산 예시로 설명합니다.",
-  alternates: { canonical: "/guides" },
-};
+const title = "1억 모으기·자산 목표 계산 가이드";
+const description =
+  "월 50만 원·100만 원으로 1억 모으는 기간과 현재 자산, 생활비 절약, 보너스, 자동차 구매가 목표일에 미치는 영향을 계산합니다.";
+
+export const metadata = createPageMetadata({ title, description, path: "/guides" });
+
+const structuredData = createGuidesCollectionStructuredData(guides);
 
 export default function GuidesPage() {
   return (
     <main id="main-content" className="content-page content-page--wide">
+      <JsonLd data={structuredData} />
       <header className="content-hero">
         <span className="section-kicker">Money GPS 가이드</span>
         <h1>돈에 관한 질문을<br />시간으로 풀어봅니다</h1>
@@ -29,4 +34,3 @@ export default function GuidesPage() {
     </main>
   );
 }
-

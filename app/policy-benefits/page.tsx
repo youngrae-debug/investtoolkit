@@ -1,15 +1,34 @@
-import type { Metadata } from "next";
 import { PolicyBenefitFinder } from "@/components/money-gps/policy-benefit-finder";
+import { JsonLd } from "@/components/seo/json-ld";
+import { createPageMetadata } from "@/lib/seo/site";
+import { createWebApplicationStructuredData } from "@/lib/seo/structured-data";
 
-export const metadata: Metadata = {
-  title: "정책 혜택 찾기",
-  description: "나이와 소득, 가구 조건으로 정책형 적금과 자산형성 지원 통장의 대상 가능성을 간단히 확인하세요.",
-  alternates: { canonical: "/policy-benefits" },
-};
+const title = "청년 정책 적금·자산형성 지원 대상 확인";
+const description =
+  "나이와 소득, 가구 조건을 입력해 청년 정책 적금과 자산형성 지원 통장의 대상 가능성, 모집 상태와 공식 확인 경로를 확인하세요.";
+
+export const metadata = createPageMetadata({
+  title,
+  description,
+  path: "/policy-benefits",
+});
+
+const structuredData = createWebApplicationStructuredData({
+  name: "INVETK 정책 혜택 찾기",
+  description,
+  path: "/policy-benefits",
+  features: [
+    "정책형 적금 대상 가능성 간이 확인",
+    "자산형성 지원 통장 조건 확인",
+    "공식 출처와 확인일 안내",
+    "금융 입력 정보 브라우저 내 처리",
+  ],
+});
 
 export default function PolicyBenefitsPage() {
   return (
     <main id="main-content" className="policy-benefits-page">
+      <JsonLd data={structuredData} />
       <header className="policy-benefits-hero">
         <span className="section-kicker">Policy Benefits</span>
         <h1>놓치고 있던 정책 혜택까지<br />내 목표에 연결합니다</h1>

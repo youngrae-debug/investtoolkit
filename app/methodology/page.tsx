@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import Link from "next/link";
+import { createPageMetadata } from "@/lib/seo/site";
 
-export const metadata: Metadata = {
-  title: "Money GPS 계산 기준",
-  description: "목표 날짜의 부족분과 세 가지 해결책, 정책 혜택의 가입 가능성과 목표 영향을 계산하는 기준을 공개합니다.",
-  alternates: { canonical: "/methodology" },
-};
+export const metadata = createPageMetadata({
+  title: "목표 금액 계산 기준과 정책 혜택 반영 방법",
+  description:
+    "목표 날짜의 부족분과 월 적립·목돈·기간 조정 해결책, 정책 혜택의 대상 가능성과 목표 영향을 계산하는 공식과 가정을 공개합니다.",
+  path: "/methodology",
+});
 
 export default function MethodologyPage() {
   return (

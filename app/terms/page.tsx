@@ -1,6 +1,11 @@
-import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo/site";
 
-export const metadata: Metadata = { title: "이용약관과 금융 면책", description: "INVETK Money GPS 계산 결과의 성격과 이용 시 유의사항을 안내합니다.", alternates: { canonical: "/terms" } };
+export const metadata = createPageMetadata({
+  title: "이용약관과 금융 면책",
+  description:
+    "INVETK Money GPS 계산 결과의 참고용 성격, 계산 한계와 중요한 금융 결정 전 확인할 유의사항을 안내합니다.",
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return <main id="main-content" className="content-page article-page legal-page"><header className="article-header"><span className="section-kicker">이용약관 · 금융 면책</span><h1>결과는 계획을 비교하기 위한 참고용 예상치입니다</h1><p>특정 금융상품이나 투자 행동을 권유하지 않습니다.</p><small>시행일 2026년 7월 15일</small></header><article className="article-body">
@@ -11,4 +16,3 @@ export default function TermsPage() {
     <section><h2>5. 서비스 변경</h2><p>계산 방식과 기능은 정확성과 사용성을 개선하기 위해 변경될 수 있습니다. 중요한 계산 기준 변경은 계산 기준 페이지와 업데이트 날짜에 반영합니다.</p></section>
   </article></main>;
 }
-

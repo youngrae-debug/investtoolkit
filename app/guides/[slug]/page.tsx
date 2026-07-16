@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/seo/json-ld";
 import { getGuide, guides } from "@/content/guides";
+import { createPageMetadata } from "@/lib/seo/site";
+import { createGuideStructuredData } from "@/lib/seo/structured-data";
 
 export function generateStaticParams() {
   return guides.map((guide) => ({ slug: guide.slug }));
@@ -11,31 +14,27 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const guide = getGuide(slug);
   if (!guide) return {};
-  return {
+  return createPageMetadata({
     title: guide.title,
     description: guide.description,
-    alternates: { canonical: `/guides/${guide.slug}` },
-  };
+    path: `/guides/${guide.slug}`,
+    article: {
+      publishedTime: "2026-07-15",
+      modifiedTime: "2026-07-15",
+    },
+  });
 }
 
 export default async function GuidePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const guide = getGuide(slug);
   if (!guide) notFound();
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: guide.faq.map((item) => ({
-      "@type": "Question",
-      name: item.question,
-      acceptedAnswer: { "@type": "Answer", text: item.answer },
-    })),
-  };
+  const structuredData = createGuideStructuredData(guide);
 
   return (
     <main id="main-content" className="content-page article-page">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <nav className="breadcrumb" aria-label="현재 위치"><Link href="/guides">가이드</Link><span>/</span><span>{guide.title}</span></nav>
+      <JsonLd data={structuredData} />
+      <nav className="breadcrumb" aria-label="현재 위치"><Link href="/">홈</Link><span>/</span><Link href="/guides">가이드</Link><span>/</span><span>{guide.title}</span></nav>
       <header className="article-header">
         <span className="section-kicker">{guide.eyebrow}</span>
         <h1>{guide.title}</h1>
@@ -52,4 +51,3 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
     </main>
   );
 }
-

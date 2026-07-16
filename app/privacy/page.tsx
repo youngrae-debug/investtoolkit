@@ -1,6 +1,11 @@
-import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo/site";
 
-export const metadata: Metadata = { title: "개인정보처리방침", description: "INVETK Money GPS의 브라우저 계산과 로컬 데이터 저장 방식을 안내합니다.", alternates: { canonical: "/privacy" } };
+export const metadata = createPageMetadata({
+  title: "개인정보처리방침",
+  description:
+    "INVETK Money GPS의 금융 입력값 브라우저 처리, localStorage 계획 저장, 백업과 삭제 방식을 안내합니다.",
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return <main id="main-content" className="content-page article-page legal-page"><header className="article-header"><span className="section-kicker">개인정보</span><h1>금융 입력값은 브라우저 안에서만 처리합니다</h1><p>기본 계산은 회원가입이나 서버 저장 없이 동작합니다.</p><small>시행일 2026년 7월 15일</small></header><article className="article-body">
@@ -12,4 +17,3 @@ export default function PrivacyPage() {
     <section><h2>6. 문의</h2><p>문의 수단이 별도 환경설정으로 제공되는 경우에만 사이트에 연락처를 표시합니다. 현재는 별도의 금융 상담이나 개인정보 접수 창구를 운영하지 않습니다.</p></section>
   </article></main>;
 }
-

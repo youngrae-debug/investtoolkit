@@ -1,36 +1,61 @@
 import type { Metadata } from "next";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { JsonLd } from "@/components/seo/json-ld";
+import {
+  DEFAULT_DESCRIPTION,
+  SITE_NAME,
+  SITE_URL,
+  SOCIAL_IMAGE,
+} from "@/lib/seo/site";
+import { GLOBAL_STRUCTURED_DATA } from "@/lib/seo/structured-data";
 import "./globals.css";
 
 const metadataBase = process.env.NODE_ENV === "production"
-  ? new URL("https://invetk.com")
+  ? new URL(SITE_URL)
   : new URL("http://localhost:3000");
 
 export const metadata: Metadata = {
   metadataBase,
+  applicationName: SITE_NAME,
   title: {
-    default: "INVETK | 돈 목표 부족분 해결 도구",
+    default: "INVETK Money GPS | 목표 금액 부족분 계산기",
     template: "%s | INVETK",
   },
-  description:
-    "목표와 현재 계획을 입력하면 부족분과 세 가지 해결책을 진단하고, 놓치기 쉬운 정책 혜택과 이번 달 실행 계획까지 제공합니다.",
-  alternates: { canonical: "/" },
+  description: DEFAULT_DESCRIPTION,
+  authors: [{ name: "INVETK", url: SITE_URL }],
+  creator: "INVETK",
+  publisher: "INVETK",
+  category: "finance",
+  alternates: { canonical: SITE_URL },
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
+  manifest: "/manifest.webmanifest",
+  formatDetection: { telephone: false, address: false, email: false },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   openGraph: {
-    title: "5년 안에 1억, 지금 계획으로 가능할까요?",
-    description: "목표 충족률과 부족분을 진단하고 월 적립·목돈·기간 조정 해결책을 만드는 Money GPS",
-    url: "https://invetk.com",
-    siteName: "INVETK Money GPS",
+    title: "INVETK Money GPS | 목표 금액 부족분 계산기",
+    description: DEFAULT_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
     locale: "ko_KR",
     type: "website",
-    images: [{ url: "/og.png", width: 1732, height: 908, alt: "INVETK Money GPS — 목표 진단에서 이번 달 실행까지" }],
+    images: [SOCIAL_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
-    title: "INVETK Money GPS",
-    description: "예상 목표 충족률과 부족분, 월 적립·목돈·기간 조정 해결책",
-    images: ["/og.png"],
+    title: "INVETK Money GPS | 목표 금액 부족분 계산기",
+    description: DEFAULT_DESCRIPTION,
+    images: [{ url: SOCIAL_IMAGE.url, alt: SOCIAL_IMAGE.alt }],
   },
 };
 
@@ -38,6 +63,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="ko">
       <body>
+        <JsonLd data={GLOBAL_STRUCTURED_DATA} />
         <a className="skip-link" href="#main-content">본문으로 건너뛰기</a>
         <SiteHeader />
         {children}
