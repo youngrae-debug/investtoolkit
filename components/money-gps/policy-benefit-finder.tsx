@@ -142,21 +142,21 @@ export function PolicyBenefitFinder({ input, targetMonths, autoOpen = false, sta
               <legend>간단한 조건 확인</legend>
               <p>정확한 가입 판정이 아닌 1차 확인입니다. 모르는 항목은 ‘모름’으로 두어도 돼요.</p>
               <div className="policy-form-grid">
-                <label className="policy-field" htmlFor="policy-age">
-                  <span>현재 만 나이</span>
-                  <small>병역이행기간은 공식 심사에서 별도로 확인해요.</small>
-                  <span className="policy-number-input"><input id="policy-age" inputMode="numeric" min="15" max="100" value={age} onChange={(event) => { setAge(event.target.value.replace(/[^0-9]/g, "").slice(0, 3)); setScreened(false); }} placeholder="예: 29" /><b>세</b></span>
-                </label>
-                <label className="policy-field" htmlFor="policy-income-kind">
-                  <span>지난해 소득 형태</span>
-                  <small>근로소득은 총급여, 사업소득은 연매출 기준입니다.</small>
-                  <select id="policy-income-kind" value={incomeKind} onChange={(event) => { setIncomeKind(event.target.value as IncomeKind | ""); setAnnualIncomeManwon(null); setScreened(false); }}>
+                <div className="policy-field">
+                  <label htmlFor="policy-age">현재 만 나이</label>
+                  <small id="policy-age-hint">병역이행기간은 공식 심사에서 별도로 확인해요.</small>
+                  <span className="policy-number-input"><input id="policy-age" aria-describedby="policy-age-hint" inputMode="numeric" min="15" max="100" value={age} onChange={(event) => { setAge(event.target.value.replace(/[^0-9]/g, "").slice(0, 3)); setScreened(false); }} placeholder="예: 29" /><b aria-hidden="true">세</b></span>
+                </div>
+                <div className="policy-field">
+                  <label htmlFor="policy-income-kind">지난해 소득 형태</label>
+                  <small id="policy-income-kind-hint">근로소득은 총급여, 사업소득은 연매출 기준입니다.</small>
+                  <select id="policy-income-kind" aria-describedby="policy-income-kind-hint" value={incomeKind} onChange={(event) => { setIncomeKind(event.target.value as IncomeKind | ""); setAnnualIncomeManwon(null); setScreened(false); }}>
                     <option value="">선택해 주세요</option>
                     <option value="salary">근로소득</option>
                     <option value="business">사업소득·매출</option>
                     <option value="none">소득 없음</option>
                   </select>
-                </label>
+                </div>
                 {incomeKind && incomeKind !== "none" && (
                   <MoneyInput
                     id="policy-annual-income"
@@ -170,13 +170,13 @@ export function PolicyBenefitFinder({ input, targetMonths, autoOpen = false, sta
                       : [{ label: "5,000만 원", value: 5_000 }, { label: "1억 원", value: 10_000 }, { label: "3억 원", value: 30_000 }]}
                   />
                 )}
-                <label className="policy-field" htmlFor="policy-household-size">
-                  <span>함께 심사되는 가구원 수</span>
-                  <small>공식 심사에서는 주민등록표와 가족관계 기준으로 가구원을 확정해요.</small>
-                  <select id="policy-household-size" value={householdSize} onChange={(event) => { const size = Number(event.target.value); setHouseholdSize(size); if (size !== 2) setMarriedCoupleOnly(false); setScreened(false); }}>
+                <div className="policy-field">
+                  <label htmlFor="policy-household-size">함께 심사되는 가구원 수</label>
+                  <small id="policy-household-size-hint">공식 심사에서는 주민등록표와 가족관계 기준으로 가구원을 확정해요.</small>
+                  <select id="policy-household-size" aria-describedby="policy-household-size-hint" value={householdSize} onChange={(event) => { const size = Number(event.target.value); setHouseholdSize(size); if (size !== 2) setMarriedCoupleOnly(false); setScreened(false); }}>
                     {Array.from({ length: 10 }, (_, index) => index + 1).map((size) => <option value={size} key={size}>{size}명</option>)}
                   </select>
-                </label>
+                </div>
                 {householdSize === 2 && (
                   <label className="policy-couple-check">
                     <input type="checkbox" checked={marriedCoupleOnly} onChange={(event) => { setMarriedCoupleOnly(event.target.checked); setScreened(false); }} />
@@ -195,16 +195,16 @@ export function PolicyBenefitFinder({ input, targetMonths, autoOpen = false, sta
                   />
                   {householdAnnualIncomeManwon !== null && annualIncomeManwon !== null && householdAnnualIncomeManwon < annualIncomeManwon && <p className="field-error" role="alert">가구소득 합계는 본인의 개인소득보다 작을 수 없어요.</p>}
                 </div>
-                <label className="policy-field" htmlFor="policy-welfare-status">
-                  <span>가구의 복지 자격</span>
-                  <small>가구 기준이며 본인 개인 자격과 다를 수 있어요.</small>
-                  <select id="policy-welfare-status" value={welfareStatus} onChange={(event) => { setWelfareStatus(event.target.value as WelfareStatus); setScreened(false); }}>
+                <div className="policy-field">
+                  <label htmlFor="policy-welfare-status">가구의 복지 자격</label>
+                  <small id="policy-welfare-status-hint">가구 기준이며 본인 개인 자격과 다를 수 있어요.</small>
+                  <select id="policy-welfare-status" aria-describedby="policy-welfare-status-hint" value={welfareStatus} onChange={(event) => { setWelfareStatus(event.target.value as WelfareStatus); setScreened(false); }}>
                     <option value="unknown">모름</option>
                     <option value="livelihood-medical">생계·의료급여 수급</option>
                     <option value="housing-education-near-poverty">주거·교육급여 또는 차상위</option>
                     <option value="other">해당 없음</option>
                   </select>
-                </label>
+                </div>
               </div>
               <div className="policy-form-actions">
                 <button type="submit" className="button button--primary" disabled={!canScreen}>{screened ? "조건 다시 확인" : "가능한 정책 확인"}</button>
@@ -272,14 +272,14 @@ export function PolicyBenefitFinder({ input, targetMonths, autoOpen = false, sta
                   maxValue={MAX_POLICY_SUPPORT_MANWON}
                   quickAmounts={[{ label: "3만 원", value: 3 }, { label: "10만 원", value: 10 }, { label: "30만 원", value: 30 }]}
                 />
-                <label className="policy-field" htmlFor="policy-support-months">
-                  <span>지원받는 기간</span>
-                  <small>공식 안내에 적힌 지원 개월 수를 입력하세요.</small>
-                  <span className="policy-number-input"><input id="policy-support-months" inputMode="numeric" min="1" max="120" value={supportMonths} onChange={(event) => { setSupportMonths(Math.min(120, Math.max(0, Number(event.target.value.replace(/[^0-9]/g, ""))))); resetConfirmation(); }} /><b>개월</b></span>
+                <div className="policy-field">
+                  <label htmlFor="policy-support-months">지원받는 기간</label>
+                  <small id="policy-support-months-hint">공식 안내에 적힌 지원 개월 수를 입력하세요.</small>
+                  <span className="policy-number-input"><input id="policy-support-months" aria-describedby="policy-support-months-hint" inputMode="numeric" min="1" max="120" value={supportMonths} onChange={(event) => { setSupportMonths(Math.min(120, Math.max(0, Number(event.target.value.replace(/[^0-9]/g, ""))))); resetConfirmation(); }} /><b aria-hidden="true">개월</b></span>
                   <span className="policy-month-buttons" aria-label="지원 기간 빠른 선택">
                     {[12, 36, 60].map((months) => <button type="button" key={months} aria-pressed={supportMonths === months} onClick={() => { setSupportMonths(months); resetConfirmation(); }}>{months}개월</button>)}
                   </span>
-                </label>
+                </div>
               </div>
               <label className="policy-confirmation">
                 <input type="checkbox" checked={officiallyConfirmed} disabled={supportManwon === null || supportManwon <= 0 || supportManwon > MAX_POLICY_SUPPORT_MANWON || supportMonths < 1} onChange={(event) => setOfficiallyConfirmed(event.target.checked)} />

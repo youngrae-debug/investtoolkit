@@ -20,8 +20,14 @@ async function reachMonthlyStep(
   await page.getByRole("textbox", { name: "목표 금액", exact: true }).fill(goal);
   await page.locator("#goal-date").fill(futureTargetMonth());
   await page.getByRole("button", { name: "다음" }).click();
+  const currentAmountHeading = page.getByRole("heading", { name: "지금까지 모은 돈은 얼마인가요?" });
+  await expect(currentAmountHeading).toBeFocused();
+  await expect(currentAmountHeading).toBeInViewport();
   await page.getByRole("textbox", { name: "지금까지 모은 돈", exact: true }).fill(current);
   await page.getByRole("button", { name: "다음" }).click();
+  const monthlyAmountHeading = page.getByRole("heading", { name: "매달 얼마를 모을 수 있나요?" });
+  await expect(monthlyAmountHeading).toBeFocused();
+  await expect(monthlyAmountHeading).toBeInViewport();
 }
 
 async function createResult(
@@ -52,6 +58,7 @@ test("creates three goal-date solutions and restores a saved plan", async ({ pag
   await expect(page.getByRole("heading", { name: "1,000만 원 부족" })).toBeVisible();
   await expect(page.locator(".completion-rate")).toContainText("예상 목표 충족률90%");
   await expect(page.getByRole("heading", { name: "부족분을 해결하는 세 가지 방법" })).toBeVisible();
+  await expect(page.getByRole("table", { name: "세 가지 실행안 핵심 비교" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "매달 나눠 채우기" })).toBeVisible();
   await expect(page.getByText("117만 원", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "먼저 실행 방법을 선택해 주세요" })).toBeVisible();
@@ -64,7 +71,8 @@ test("creates three goal-date solutions and restores a saved plan", async ({ pag
   await expect(balancedPlan).toContainText("109만 원");
   await expect(balancedPlan).toContainText("500만 원");
   await balancedPlan.getByRole("button", { name: "이 방법으로 계획 보기" }).click();
-  await expect(page.getByRole("heading", { name: "이번 달은 이렇게 시작하세요" })).toBeVisible();
+  await page.getByRole("link", { name: "이번 달 행동 보기" }).click();
+  await expect(page.getByRole("heading", { name: "이번 달은 이렇게 시작하세요" })).toBeInViewport();
   await expect(page.locator("#monthly-action")).toContainText("월 자동이체를 109만 원으로 설정하기");
   await expect(page.locator("#monthly-action")).toContainText("시작 자금 500만 원 보태기");
   await page.getByRole("checkbox", { name: "오늘 행동 완료 표시" }).check();
@@ -213,6 +221,8 @@ test("finds a policy benefit and calculates only a confirmed support amount", as
   await createResult(page);
 
   await page.getByRole("button", { name: "내 혜택 가능성 확인" }).click();
+  await expect(page.locator("#policy-age")).toHaveAccessibleName("현재 만 나이");
+  await expect(page.locator("#policy-age")).toHaveAccessibleDescription("병역이행기간은 공식 심사에서 별도로 확인해요.");
   await page.locator("#policy-age").fill("29");
   await page.getByRole("combobox", { name: "지난해 소득 형태" }).selectOption("salary");
   await page.getByRole("textbox", { name: "지난해 총급여", exact: true }).fill("3600");

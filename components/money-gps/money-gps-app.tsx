@@ -120,6 +120,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
   const [updateMemo, setUpdateMemo] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const calculatorRef = useRef<HTMLElement>(null);
+  const wizardHeadingRef = useRef<HTMLHeadingElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -204,15 +205,28 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
     : [];
 
   function scrollToCalculator() {
-    requestAnimationFrame(() => calculatorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    requestAnimationFrame(() => calculatorRef.current?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "start",
+    }));
+  }
+
+  function moveToWizardStep(nextStep: number) {
+    setStep(nextStep);
+    requestAnimationFrame(() => {
+      calculatorRef.current?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+      wizardHeadingRef.current?.focus({ preventScroll: true });
+    });
   }
 
   function startCalculation() {
     setPhase("wizard");
-    setStep(1);
     setEditingPlanId(null);
     trackEvent("gps_started");
-    scrollToCalculator();
+    moveToWizardStep(1);
   }
 
   function nextStep() {
@@ -220,7 +234,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
     if (step === 2 && (currentManwon === null || currentManwon < 0 || currentManwon > MAX_CURRENT_MANWON)) return;
     trackEvent("gps_step_completed", { step_number: step });
     if (step < 3) {
-      setStep(step + 1);
+      moveToWizardStep(step + 1);
       return;
     }
     if (monthlyManwon === null || Math.abs(monthlyManwon) > MAX_MONTHLY_MANWON) return;
@@ -598,7 +612,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
             )}
             <div className="wizard-heading">
               <span className="section-kicker">{step === 1 ? "목적지" : step === 2 ? "현재 위치" : "이동 속도"}</span>
-              <h1 id="calculator-title">{step === 1 ? "언제까지 얼마를 만들고 싶나요?" : step === 2 ? "지금까지 모은 돈은 얼마인가요?" : "매달 얼마를 모을 수 있나요?"}</h1>
+              <h1 ref={wizardHeadingRef} id="calculator-title" tabIndex={-1}>{step === 1 ? "언제까지 얼마를 만들고 싶나요?" : step === 2 ? "지금까지 모은 돈은 얼마인가요?" : "매달 얼마를 모을 수 있나요?"}</h1>
               <p>{step === 1 ? "목표 금액과 그 돈이 필요한 날짜를 함께 정해보세요." : step === 2 ? "예금과 투자자산 등 목표에 쓸 수 있는 돈을 합쳐보세요." : "월급날마다 꾸준히 더할 수 있는 금액을 적어보세요."}</p>
             </div>
             {step === 1 && (
@@ -629,8 +643,8 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
               </>
             )}
             <div className="wizard-actions">
-              <button type="button" className="button button--quiet" onClick={() => step === 1 ? setPhase(autoStart ? "wizard" : "intro") : setStep(step - 1)} disabled={autoStart && step === 1}>이전</button>
-              <button type="button" className="button button--primary" onClick={nextStep} disabled={!currentValid}>{step === 3 ? "부족분과 해결안 보기" : "다음"} <span aria-hidden="true">→</span></button>
+              <button type="button" className="button button--quiet" onClick={() => step === 1 ? setPhase(autoStart ? "wizard" : "intro") : moveToWizardStep(step - 1)} disabled={autoStart && step === 1}>이전</button>
+              <button type="button" className="button button--primary" aria-label={step === 3 ? "부족분과 해결안 보기" : undefined} onClick={nextStep} disabled={!currentValid}>{step === 3 ? "결과 보기" : "다음"} <span aria-hidden="true">→</span></button>
             </div>
             <p className="privacy-note"><span aria-hidden="true">●</span> 입력한 금액은 서버로 전송되지 않아요.</p>
           </div>
@@ -718,6 +732,17 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
 
             <section id="solutions" className="result-section solution-section" aria-labelledby="solutions-title">
               <div className="section-heading"><div><span className="section-kicker">해결책 3개</span><h2 id="solutions-title">{goalAnalysis.onTrack ? "현재 계획을 활용하는 세 가지 방법" : "부족분을 해결하는 세 가지 방법"}</h2><p>월 적립 확대, 월 적립·시작 자금 조합, 기간 조정 중 하나를 고르면 이번 달 실행 계획으로 바꿔드려요.</p></div></div>
+              <div className="solution-summary">
+                <table>
+                  <caption className="visually-hidden">세 가지 실행안 핵심 비교</caption>
+                  <thead><tr><th scope="col">비교</th>{goalAnalysis.actionPlans.map((plan) => <th scope="col" key={plan.id}>{plan.id === "monthly" ? "월 적립" : plan.id === "balanced" ? "월+목돈" : "기간 조정"}</th>)}</tr></thead>
+                  <tbody>
+                    <tr><th scope="row">매달</th>{goalAnalysis.actionPlans.map((plan) => <td key={plan.id}>{formatCurrency(plan.monthlyContribution)}</td>)}</tr>
+                    <tr><th scope="row">시작 자금</th>{goalAnalysis.actionPlans.map((plan) => <td key={plan.id}>{plan.upfrontAmount > 0 ? formatCurrency(plan.upfrontAmount) : "추가 없음"}</td>)}</tr>
+                    <tr><th scope="row">목표 날짜</th>{goalAnalysis.actionPlans.map((plan) => <td key={plan.id}>{formatArrivalDate(plan.adjustedTargetDate ?? goalAnalysis.targetDate)}</td>)}</tr>
+                  </tbody>
+                </table>
+              </div>
               <div className="solution-grid" role="group" aria-label="목표 날짜 실행안 선택">
                 {goalAnalysis.actionPlans.map((plan, index) => {
                   const selected = selectedActionPlan?.id === plan.id;
@@ -738,7 +763,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
                   );
                 })}
               </div>
-              {selectedActionPlan && <div className="solution-feedback" role="status"><span aria-hidden="true">✓</span><strong>{selectedActionPlan.title}</strong> 기준으로 아래 행동 계획이 바뀌었어요.</div>}
+              {selectedActionPlan && <div className="solution-feedback"><span className="solution-feedback__message" role="status"><span aria-hidden="true">✓</span><strong>{selectedActionPlan.title}</strong> 기준으로 아래 행동 계획이 바뀌었어요.</span><a href="#monthly-action">이번 달 행동 보기 <span aria-hidden="true">→</span></a></div>}
               {!selectedActionPlan && <div className="solution-choice-prompt">추천값을 미리 선택하지 않았어요. 세 방법을 비교한 뒤 직접 하나를 선택해 주세요.</div>}
               <p className="solution-note">세 방법은 선택한 목표 날짜와 계산 가정에 따른 산술 예시이며 추천이 아닙니다. 가능 범위를 적용한 방법이 목표에 못 미치면 날짜를 늦추거나 범위를 다시 조정해 주세요.</p>
             </section>
@@ -781,7 +806,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
             <PolicyBenefitFinder input={baseInput} targetMonths={goalAnalysis.monthsRemaining} />
 
             <section className="result-section core-inputs" aria-labelledby="inputs-title">
-              <div className="section-heading"><div><span className="section-kicker">계산에 쓴 계획</span><h2 id="inputs-title">입력한 조건 한눈에 보기</h2></div><button type="button" className="text-action" onClick={() => { setPhase("wizard"); setStep(1); }}>조건 수정</button></div>
+              <div className="section-heading"><div><span className="section-kicker">계산에 쓴 계획</span><h2 id="inputs-title">입력한 조건 한눈에 보기</h2></div><button type="button" className="text-action" onClick={() => { setPhase("wizard"); moveToWizardStep(1); }}>조건 수정</button></div>
               <div className="input-summary-grid input-summary-grid--four">
                 <div><small>목표 금액</small><strong>{formatCurrency(baseInput.goalAmount)}</strong></div>
                 <div><small>목표 날짜</small><strong>{formatArrivalDate(goalAnalysis.targetDate)}</strong></div>
@@ -884,7 +909,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
             </details>
 
             <div className="disclaimer">본 결과는 입력한 값과 가정을 바탕으로 계산한 참고용 예상치입니다. 실제 수익, 세금, 수수료, 물가, 소득과 지출은 달라질 수 있습니다. 정책 혜택의 대상 가능성은 간이 확인이며 최종 가입 자격과 지급액은 공식 심사를 따라야 합니다. INVETK는 특정 금융상품의 가입·매수·매도를 권유하지 않습니다.</div>
-            <button className="restart-button" type="button" onClick={() => { setPhase("wizard"); setStep(1); setAnnualRate(0); setSelectedAction(null); setCompletedActionSteps([]); setFeasibilityLimits(null); setMonthlyExtraLimitManwon(null); setUpfrontLimitManwon(null); setEditingPlanId(null); }}>처음부터 다시 계산</button>
+            <button className="restart-button" type="button" onClick={() => { setPhase("wizard"); moveToWizardStep(1); setAnnualRate(0); setSelectedAction(null); setCompletedActionSteps([]); setFeasibilityLimits(null); setMonthlyExtraLimitManwon(null); setUpfrontLimitManwon(null); setEditingPlanId(null); }}>처음부터 다시 계산</button>
           </div>
         ) : null}
       </section>
