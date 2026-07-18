@@ -903,7 +903,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
         </section>
       )}
 
-      <input className="visually-hidden" ref={importRef} type="file" accept="application/json" onChange={handleImport} />
+      <input hidden ref={importRef} type="file" accept="application/json" onChange={handleImport} />
       <div className="toast" role="status" aria-live="polite">{statusMessage}</div>
     </main>
   );

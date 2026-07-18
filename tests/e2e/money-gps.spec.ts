@@ -126,6 +126,7 @@ test("updates a saved limited plan and records the shortage change", async ({ pa
 
 test("exports a saved plan and restores the backup", async ({ page }, testInfo) => {
   await createResult(page);
+  await expect(page.getByRole("button", { name: "Choose File" })).toHaveCount(0);
   await page.getByRole("article", { name: /월 적립과 시작 자금 나눠 채우기/ }).getByRole("button").click();
   await page.getByRole("button", { name: "계획 저장" }).click();
 
