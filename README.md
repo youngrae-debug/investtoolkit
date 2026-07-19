@@ -38,11 +38,13 @@ npm run typecheck
 npm run lint
 npm test
 npm run test:e2e
+npm run verify:ads
 npm run build
 npm run start
 ```
 
 Playwright 브라우저가 없는 환경에서는 최초 1회 `npx playwright install chromium`을 실행합니다.
+`npm run verify:ads`는 광고 환경변수가 없는 상태와 테스트 게시자·슬롯 ID가 있는 상태를 연속 실행하며 실제 Google 광고 요청은 가로챕니다.
 
 ## 주요 흐름
 

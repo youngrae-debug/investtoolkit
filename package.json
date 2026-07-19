@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "verify:ads": "playwright test tests/e2e/ads.spec.ts && cross-env NEXT_PUBLIC_ADSENSE_CLIENT_ID=ca-pub-1234567890123456 NEXT_PUBLIC_ADSENSE_GUIDE_SLOT_ID=1234567890 playwright test tests/e2e/ads.spec.ts",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
   "dependencies": {
