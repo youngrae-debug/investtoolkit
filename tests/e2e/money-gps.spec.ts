@@ -84,6 +84,11 @@ test("creates three goal-date solutions and restores a saved plan", async ({ pag
   await page.reload();
   await expect(page.getByRole("heading", { name: "나의 목표 계획의 경로를 이어볼까요?" })).toBeVisible();
   await expect(page.getByRole("button", { name: "이번 달 업데이트" })).toBeVisible();
+  await page.getByRole("button", { name: "이번 달 업데이트" }).click();
+  await expect(page.getByRole("heading", { name: "이번 달 얼마 모았나요?" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "이번 달 얼마 모았나요?" })).toBeInViewport();
+  await expect(page.getByRole("textbox", { name: "이번 달 실제로 모은 돈", exact: true })).toBeVisible();
+  await page.goto("/");
   await page.getByRole("button", { name: "계획 다시 보기" }).click();
   await expect(page.getByRole("article", { name: /월 적립과 시작 자금 나눠 채우기, 선택됨/ })).toBeVisible();
   await expect(page.locator("#monthly-action")).toContainText("1/3 완료");
@@ -95,6 +100,21 @@ test("creates three goal-date solutions and restores a saved plan", async ({ pag
   await expect(page.getByRole("heading", { name: "목표 날짜 조정하기" })).toBeVisible();
   await expect(page.getByRole("article", { name: /매달 가능한 만큼 채우기/ })).toContainText("목표일에 400만 원 부족");
   await expect(page.getByRole("article", { name: /가능 범위 함께 쓰기/ })).toContainText("목표 금액 도달");
+});
+
+test("requires saving plan changes before a monthly update", async ({ page }) => {
+  await createResult(page);
+  await page.getByRole("article", { name: /월 적립과 시작 자금 나눠 채우기/ }).getByRole("button").click();
+  await page.getByRole("button", { name: "계획 저장" }).click();
+
+  await page.getByRole("article", { name: /매달 나눠 채우기/ }).getByRole("button").click();
+  await expect(page.locator("#monthly-update")).toContainText("화면의 계획이 마지막 저장본과 달라요");
+  await expect(page.getByRole("textbox", { name: "이번 달 실제로 모은 돈", exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "변경 먼저 저장" }).click();
+  await expect(page.getByRole("heading", { name: "선택한 실행 계획을 저장할까요?" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "선택한 실행 계획을 저장할까요?" })).toBeInViewport();
+  await expect(page.locator(".toast")).toContainText("변경 내용을 먼저 저장한 뒤 이번 달 기록을 남겨 주세요");
 });
 
 test("blocks unsafe amount ranges and requires a future target date", async ({ page }) => {

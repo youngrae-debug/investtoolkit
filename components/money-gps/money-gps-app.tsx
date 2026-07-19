@@ -13,6 +13,7 @@ import { formatArrivalDate } from "@/lib/format/date";
 import { formatDuration } from "@/lib/format/duration";
 import { dateToMonthValue, futureMonthValue, monthValueToDate } from "@/lib/format/month-value";
 import {
+  analyzeGoalPlan,
   projectedBalanceAtTarget,
   type GoalActionPlanId,
   type GoalFeasibilityLimits,
@@ -147,6 +148,8 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
   const [statusMessage, setStatusMessage] = useState("");
   const calculatorRef = useRef<HTMLElement>(null);
   const wizardHeadingRef = useRef<HTMLHeadingElement>(null);
+  const saveSectionRef = useRef<HTMLElement>(null);
+  const saveHeadingRef = useRef<HTMLHeadingElement>(null);
   const updateSectionRef = useRef<HTMLElement>(null);
   const updateHeadingRef = useRef<HTMLHeadingElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
@@ -320,6 +323,26 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
     }));
   }
 
+  function focusPlanSave() {
+    requestAnimationFrame(() => {
+      saveSectionRef.current?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+      saveHeadingRef.current?.focus({ preventScroll: true });
+    });
+  }
+
+  function focusMonthlyUpdate() {
+    requestAnimationFrame(() => {
+      updateSectionRef.current?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+      updateHeadingRef.current?.focus({ preventScroll: true });
+    });
+  }
+
   function moveToWizardStep(nextStep: number) {
     setStep(nextStep);
     requestAnimationFrame(() => {
@@ -382,10 +405,17 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
     );
     setUpdateReason(currentCheckin?.reason ?? null);
     setUpdateOpen(openUpdate);
-    scrollToCalculator();
+    if (openUpdate) focusMonthlyUpdate();
+    else scrollToCalculator();
   }
 
   function toggleMonthlyUpdate() {
+    if (!isCurrentPlanSaved) {
+      setUpdateOpen(false);
+      setStatusMessage("변경 내용을 먼저 저장한 뒤 이번 달 기록을 남겨 주세요.");
+      focusPlanSave();
+      return;
+    }
     if (updateOpen) {
       setUpdateOpen(false);
       return;
@@ -485,10 +515,23 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
   }
 
   function handleMonthlyUpdate() {
-    if (!savedPlan || !monthlyCheckinImpact || actualSavingsManwon === null) return;
+    if (
+      !savedPlan
+      || !isCurrentPlanSaved
+      || !monthlyCheckinImpact
+      || actualSavingsManwon === null
+      || !baseInput
+      || !parsedGoalDate
+      || !selectedActionPlan
+    ) return;
     const now = new Date();
     const currentPeriod = monthPeriod(now);
     const shortageDifference = monthlyCheckinShortageDifference;
+    const refreshedActionPlan = analyzeGoalPlan(
+      { ...baseInput, currentAmount: monthlyCheckinImpact.currentAmount },
+      parsedGoalDate,
+      feasibilityLimits,
+    ).actionPlans.find((plan) => plan.id === selectedActionPlan.id) ?? selectedActionPlan;
     const nextCheckin = {
       date: now.toISOString(),
       period: currentPeriod,
@@ -512,17 +555,15 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
       arrivalDate: monthlyCheckinImpact.arrivalDate?.toISOString() ?? null,
       projectedAtTarget: monthlyCheckinImpact.projectedAtTarget,
       shortage: monthlyCheckinImpact.shortage,
-      actionPlan: selectedActionPlan
-        ? {
-            id: selectedActionPlan.id,
-            title: selectedActionPlan.title,
-            monthlyContribution: selectedActionPlan.monthlyContribution,
-            upfrontAmount: selectedActionPlan.upfrontAmount,
-            adjustedTargetDate: selectedActionPlan.adjustedTargetDate
-              ? dateToMonthValue(selectedActionPlan.adjustedTargetDate)
-              : null,
-          }
-        : savedPlan.actionPlan,
+      actionPlan: {
+        id: refreshedActionPlan.id,
+        title: refreshedActionPlan.title,
+        monthlyContribution: refreshedActionPlan.monthlyContribution,
+        upfrontAmount: refreshedActionPlan.upfrontAmount,
+        adjustedTargetDate: refreshedActionPlan.adjustedTargetDate
+          ? dateToMonthValue(refreshedActionPlan.adjustedTargetDate)
+          : null,
+      },
       completedActionSteps: [],
       checkins,
     };
@@ -530,13 +571,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
     setCurrentManwon(wonToManwon(monthlyCheckinImpact.currentAmount));
     setCompletedActionSteps([]);
     setUpdateOpen(false);
-    requestAnimationFrame(() => {
-      updateSectionRef.current?.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-        block: "start",
-      });
-      updateHeadingRef.current?.focus({ preventScroll: true });
-    });
+    focusMonthlyUpdate();
     const savingsCopy = savingsDifferenceCopy(monthlyCheckinImpact.contributionDifference);
     const goalCopy = shortageDifference === null || shortageDifference === 0
       ? "목표 계획의 큰 흐름은 그대로예요."
@@ -935,8 +970,8 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
               )}
             </section>
 
-            <section id="save-plan" className="result-section save-section" aria-labelledby="save-title">
-              <div><span className="section-kicker">다음 달에도 이어보기</span><h2 id="save-title">선택한 실행 계획을 저장할까요?</h2><p>{selectedActionPlan ? `'${selectedActionPlan.title}'과 이번 달 체크 상태를 현재 브라우저에 저장합니다.` : "먼저 위 실행안 중 하나를 직접 선택해 주세요."} INVETK 서버로 전송되지 않습니다.</p></div>
+            <section id="save-plan" ref={saveSectionRef} className="result-section save-section" aria-labelledby="save-title">
+              <div><span className="section-kicker">다음 달에도 이어보기</span><h2 id="save-title" ref={saveHeadingRef} tabIndex={-1}>선택한 실행 계획을 저장할까요?</h2><p>{selectedActionPlan ? `'${selectedActionPlan.title}'과 이번 달 체크 상태를 현재 브라우저에 저장합니다.` : "먼저 위 실행안 중 하나를 직접 선택해 주세요."} INVETK 서버로 전송되지 않습니다.</p></div>
               <div className="save-form"><label htmlFor="plan-name">계획 이름</label><div><input id="plan-name" value={planName} maxLength={60} onChange={(event) => setPlanName(event.target.value)} /><button className="button button--primary" type="button" disabled={!selectedActionPlan || !planName.trim() || isCurrentPlanSaved} onClick={handleSave}>{isCurrentPlanSaved ? "저장됨" : editingPlanId === savedPlan?.id ? "변경 내용 저장" : savedPlan ? "기존 계획 교체" : "계획 저장"}</button></div></div>
             </section>
 
@@ -948,9 +983,15 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
                     <h2 id="update-title" ref={updateHeadingRef} tabIndex={-1}>이번 달 얼마 모았나요?</h2>
                     <p>실제로 모은 돈만 입력하면 계획과 목표 영향을 비교해요.</p>
                   </div>
-                  <button className="text-action" type="button" onClick={toggleMonthlyUpdate}>{updateOpen ? "닫기" : existingMonthlyCheckin ? "기록 수정" : "기록하기"}</button>
+                  <button className="text-action" type="button" onClick={toggleMonthlyUpdate}>{!isCurrentPlanSaved ? "변경 먼저 저장" : updateOpen ? "닫기" : existingMonthlyCheckin ? "기록 수정" : "기록하기"}</button>
                 </div>
-                {updateOpen && (
+                {!isCurrentPlanSaved && (
+                  <div className="update-save-notice" role="status">
+                    <strong>화면의 계획이 마지막 저장본과 달라요.</strong>
+                    <span>변경 내용을 먼저 저장하면 같은 계획 기준으로 이번 달 기록을 남길 수 있어요.</span>
+                  </div>
+                )}
+                {updateOpen && isCurrentPlanSaved && (
                   <div className="update-form">
                     <MoneyInput
                       id="actual-monthly-savings"
