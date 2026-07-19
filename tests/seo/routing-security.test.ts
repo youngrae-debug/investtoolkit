@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import nextConfig from "../../next.config";
 import { proxy } from "../../proxy";
+import { createContentSecurityPolicy } from "@/lib/security/csp";
 
 describe("canonical host routing", () => {
   it("redirects www requests permanently while preserving path and query", () => {
@@ -16,22 +17,32 @@ describe("canonical host routing", () => {
 
     expect(response.headers.get("location")).toBeNull();
     expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.headers.get("content-security-policy")).toContain("https://www.googletagmanager.com");
+    expect(response.headers.get("content-security-policy")).not.toContain("frame-src https:");
   });
 });
 
 describe("security headers", () => {
-  it("sets browser hardening headers without blocking Google Analytics", async () => {
+  it("keeps browser hardening headers on every route", async () => {
     expect(nextConfig.headers).toBeTypeOf("function");
     const rules = await nextConfig.headers?.();
-    const headers = Object.fromEntries((rules?.[0]?.headers ?? []).map(({ key, value }) => [key, value]));
+    const securityHeaders = Object.fromEntries((rules?.[0]?.headers ?? []).map(({ key, value }) => [key, value]));
 
     expect(rules?.map(({ source }) => source)).toEqual(["/", "/:path*"]);
-    expect(headers["Strict-Transport-Security"]).toBe("max-age=31536000");
-    expect(headers["X-Content-Type-Options"]).toBe("nosniff");
-    expect(headers["X-Frame-Options"]).toBe("DENY");
-    expect(headers["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
-    expect(headers["Content-Security-Policy"]).toContain("frame-ancestors 'none'");
-    expect(headers["Content-Security-Policy"]).toContain("https://www.googletagmanager.com");
-    expect(headers["Content-Security-Policy"]).toContain("https://*.google-analytics.com");
+    expect(securityHeaders["Strict-Transport-Security"]).toBe("max-age=31536000");
+    expect(securityHeaders["X-Content-Type-Options"]).toBe("nosniff");
+    expect(securityHeaders["X-Frame-Options"]).toBe("DENY");
+    expect(securityHeaders["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
+  });
+
+  it("allows AdSense child resources only in the explicit ad policy", () => {
+    const corePolicy = createContentSecurityPolicy();
+    const adPolicy = createContentSecurityPolicy({ allowAdSense: true });
+
+    expect(corePolicy).toContain("frame-ancestors 'none'");
+    expect(corePolicy).toContain("https://*.google-analytics.com");
+    expect(corePolicy).not.toContain("frame-src https:");
+    expect(adPolicy).toContain("frame-src https:");
+    expect(adPolicy).toContain("script-src 'self' 'unsafe-inline' https:");
   });
 });

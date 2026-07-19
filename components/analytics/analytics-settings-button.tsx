@@ -1,6 +1,7 @@
 "use client";
 
 import { ANALYTICS_SETTINGS_EVENT } from "@/lib/analytics/config";
+import { ADSENSE_CONFIGURED } from "@/lib/ads/config";
 
 export function AnalyticsSettingsButton() {
   return (
@@ -9,7 +10,7 @@ export function AnalyticsSettingsButton() {
       type="button"
       onClick={() => window.dispatchEvent(new Event(ANALYTICS_SETTINGS_EVENT))}
     >
-      분석 설정
+      {ADSENSE_CONFIGURED ? "개인정보 설정" : "분석 설정"}
     </button>
   );
 }

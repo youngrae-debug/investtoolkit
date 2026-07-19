@@ -10,6 +10,7 @@ import {
   SOCIAL_IMAGE,
 } from "@/lib/seo/site";
 import { GLOBAL_STRUCTURED_DATA } from "@/lib/seo/structured-data";
+import { ADSENSE_CLIENT_ID } from "@/lib/ads/config";
 import "./globals.css";
 
 const metadataBase = process.env.NODE_ENV === "production"
@@ -32,6 +33,9 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
   manifest: "/manifest.webmanifest",
   formatDetection: { telephone: false, address: false, email: false },
+  other: ADSENSE_CLIENT_ID
+    ? { "google-adsense-account": ADSENSE_CLIENT_ID }
+    : undefined,
   robots: {
     index: true,
     follow: true,
