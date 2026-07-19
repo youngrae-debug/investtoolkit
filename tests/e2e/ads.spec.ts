@@ -1,7 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-const adsConfigured = /^ca-pub-\d{16}$/.test(process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID ?? "")
-  && /^\d{10}$/.test(process.env.NEXT_PUBLIC_ADSENSE_GUIDE_SLOT_ID ?? "");
+const defaultClientId = "ca-pub-6841289838521074";
+const configuredClientId = /^ca-pub-\d{16}$/.test(process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID ?? "")
+  ? process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID!
+  : defaultClientId;
+const adsConfigured = /^\d{10}$/.test(process.env.NEXT_PUBLIC_ADSENSE_GUIDE_SLOT_ID ?? "");
 
 test("renders the guide comparison and checklist without page overflow", async ({ page }) => {
   await page.addInitScript(() => {
@@ -32,7 +35,7 @@ test("never places AdSense code on the calculator or policy-benefit routes", asy
   }
 });
 
-test("keeps guide ads inactive when publisher configuration is missing", async ({ page }) => {
+test("publishes ownership metadata while keeping guide ads inactive without a slot", async ({ page }) => {
   test.skip(adsConfigured, "AdSense test configuration is active.");
 
   await page.addInitScript(() => {
@@ -43,12 +46,16 @@ test("keeps guide ads inactive when publisher configuration is missing", async (
 
   await expect(page.locator("#invetk-adsense-script")).toHaveCount(0);
   await expect(page.locator("ins.adsbygoogle")).toHaveCount(0);
-  await expect(page.locator('meta[name="google-adsense-account"]')).toHaveCount(0);
+  await expect(page.locator('meta[name="google-adsense-account"]')).toHaveAttribute("content", defaultClientId);
+
+  const adsText = await page.request.get("/ads.txt");
+  expect(adsText.status()).toBe(200);
+  expect(await adsText.text()).toBe(`google.com, ${defaultClientId.replace(/^ca-/, "")}, DIRECT, f08c47fec0942fa0\n`);
 });
 
 test("loads one non-personalized responsive ad only after explicit consent", async ({ page }) => {
   test.skip(!adsConfigured, "Requires test AdSense publisher and slot IDs.");
-  const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID!;
+  const clientId = configuredClientId;
   const slotId = process.env.NEXT_PUBLIC_ADSENSE_GUIDE_SLOT_ID!;
 
   await page.route("https://pagead2.googlesyndication.com/**", async (route) => {

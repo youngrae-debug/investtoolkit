@@ -6,15 +6,17 @@
 - 광고 선택을 허용한 뒤에만 `adsbygoogle.js`를 불러옵니다.
 - 광고 요청 전에 `requestNonPersonalizedAds=1`을 설정합니다.
 - 계산기와 정책 혜택 페이지에는 광고 컴포넌트와 광고 선택 안내를 렌더링하지 않습니다.
-- 게시자 ID로 사이트 확인 메타 태그와 `/ads.txt`를 생성합니다.
+- 실제 계정의 공개 게시자 ID로 사이트 확인 메타 태그와 `/ads.txt`를 항상 생성합니다.
+- 광고 슬롯 ID가 없으면 광고 UI와 네트워크 요청은 계속 비활성 상태입니다.
 
 ## 실제 계정 연결
 
-1. AdSense에서 사이트를 추가하고 게시자 ID를 확인합니다.
-2. 반응형 디스플레이 광고 단위 한 개를 만들고 슬롯 ID를 확인합니다.
-3. `NEXT_PUBLIC_ADSENSE_CLIENT_ID`와 `NEXT_PUBLIC_ADSENSE_GUIDE_SLOT_ID`를 설정해 다시 빌드합니다.
-4. AdSense의 사이트 상태가 `준비됨`인지 확인합니다.
-5. `https://invetk.com/ads.txt`와 `google-adsense-account` 메타 태그의 게시자 ID가 일치하는지 확인합니다.
+1. 2026-07-19에 AdSense 사이트 목록에 `invetk.com`을 추가했습니다.
+2. 공개 게시자 ID `ca-pub-6841289838521074`를 소유권 확인 메타 태그와 `/ads.txt` 기본값으로 연결했습니다.
+3. 이 변경을 배포한 뒤 `https://invetk.com/ads.txt`와 `google-adsense-account` 메타 태그를 확인합니다.
+4. AdSense에서 `HTML <meta> 태그를 삽입했습니다.`를 선택하고 소유권 확인과 검토 요청을 진행합니다.
+5. 사이트가 승인되면 반응형 디스플레이 광고 단위 한 개를 만들고 `NEXT_PUBLIC_ADSENSE_GUIDE_SLOT_ID`를 설정해 다시 배포합니다.
+6. AdSense의 사이트 상태가 `준비됨`인지 확인한 뒤 제한된 가이드 경로부터 광고를 관찰합니다.
 
 ## 개인정보와 보안
 
