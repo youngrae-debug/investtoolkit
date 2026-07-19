@@ -254,3 +254,12 @@ test("opens policy benefits from its own menu and removes the duplicate comparis
   await expect(page.getByRole("group", { name: "간단한 조건 확인" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "함께 심사되는 가구원 수" })).toBeVisible();
 });
+
+test("keeps the backup control readable on the dark calculator preview", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("main[data-hydrated='true']")).toBeVisible();
+
+  const backupButton = page.getByRole("button", { name: "백업 불러오기" });
+  await expect(backupButton).toBeEnabled();
+  await expect(backupButton).toHaveCSS("color", "rgb(16, 47, 54)");
+});
