@@ -124,12 +124,15 @@ test("updates a saved limited plan and records the shortage change", async ({ pa
   await page.getByRole("article", { name: /매달 가능한 만큼 채우기/ }).getByRole("button").click();
   await page.getByRole("button", { name: "계획 저장" }).click();
 
-  await page.getByRole("button", { name: "업데이트하기" }).click();
-  await page.getByRole("textbox", { name: "이번 달 지금까지 모은 돈", exact: true }).fill("3100");
+  await page.getByRole("button", { name: "기록하기" }).click();
+  await page.getByRole("textbox", { name: "이번 달 실제로 모은 돈", exact: true }).fill("210");
+  await page.getByRole("button", { name: "수입이 달라졌어요" }).click();
   await page.getByRole("button", { name: "이번 달 기록 저장" }).click();
 
+  await expect(page.locator(".toast")).toContainText("계획보다 100만 원 더 모았어요");
   await expect(page.locator(".toast")).toContainText("예상 부족분이 100만 원 줄었어요");
-  await expect(page.locator(".checkin-list")).toContainText("부족분 100만 원 감소");
+  await expect(page.locator(".checkin-list")).toContainText("계획 110만 원 · 실제 210만 원");
+  await expect(page.locator(".checkin-list")).toContainText("수입이 달라졌어요");
 });
 
 test("exports a saved plan and restores the backup", async ({ page }, testInfo) => {
@@ -163,18 +166,19 @@ test("keeps monthly updates aligned with the currently displayed action", async 
   await page.getByRole("article", { name: /매달 나눠 채우기/ }).getByRole("button").click();
   await page.getByRole("button", { name: "계획 저장" }).click();
 
-  await page.getByRole("button", { name: "업데이트하기" }).click();
-  await page.getByRole("textbox", { name: "이번 달 지금까지 모은 돈", exact: true }).fill("3100");
+  await page.getByRole("button", { name: "기록하기" }).click();
+  await page.getByRole("textbox", { name: "이번 달 실제로 모은 돈", exact: true }).fill("115");
   await page.getByRole("button", { name: "이번 달 기록 저장" }).click();
   await expect(page.locator(".solution-card--selected")).toContainText("115만 원");
 
-  await page.getByRole("button", { name: "업데이트하기" }).click();
-  await page.getByRole("button", { name: "이번 달 기록 저장" }).click();
-  const savedMonthlyContribution = await page.evaluate(() => {
+  await page.getByRole("button", { name: "기록 수정" }).click();
+  await page.getByRole("button", { name: "이번 달 기록 수정" }).press("Enter");
+  const savedState = await page.evaluate(() => {
     const raw = window.localStorage.getItem("invetk-money-gps");
-    return raw ? JSON.parse(raw).actionPlan.monthlyContribution : null;
+    return raw ? JSON.parse(raw) : null;
   });
-  expect(savedMonthlyContribution).toBe(1_150_000);
+  expect(savedState.actionPlan.monthlyContribution).toBe(1_150_000);
+  expect(savedState.checkins).toHaveLength(1);
 });
 
 test("moves focus into the cashflow helper and restores it on Escape", async ({ page }) => {

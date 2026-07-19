@@ -13,18 +13,17 @@ import { formatArrivalDate } from "@/lib/format/date";
 import { formatDuration } from "@/lib/format/duration";
 import { dateToMonthValue, futureMonthValue, monthValueToDate } from "@/lib/format/month-value";
 import {
-  analyzeGoalPlan,
   projectedBalanceAtTarget,
   type GoalActionPlanId,
   type GoalFeasibilityLimits,
 } from "@/lib/simulation/goal-solver";
-import { simulatePlan } from "@/lib/simulation/engine";
+import { analyzeMonthlyCheckin } from "@/lib/simulation/monthly-checkin";
 import {
   analyzeConditionAtTarget,
   conditionPresets,
   type ConditionPresetId,
 } from "@/lib/simulation/scenarios";
-import type { CashflowInput, SimulationInput } from "@/lib/simulation/types";
+import type { CashflowInput } from "@/lib/simulation/types";
 import {
   deleteSavedPlan,
   exportBackup,
@@ -32,6 +31,7 @@ import {
   loadSavedPlan,
   savePlan,
   SCHEMA_VERSION,
+  type MonthlyCheckinReason,
   type SavedPlan,
 } from "@/lib/storage/plans";
 import { AssetChart } from "./asset-chart";
@@ -53,6 +53,32 @@ type Phase = "intro" | "wizard" | "result";
 
 interface MoneyGpsAppProps {
   autoStart?: boolean;
+}
+
+const MONTHLY_CHECKIN_REASONS: { id: MonthlyCheckinReason; label: string }[] = [
+  { id: "living-expenses", label: "생활비가 늘었어요" },
+  { id: "unexpected-expense", label: "예상 밖 지출" },
+  { id: "income-change", label: "수입이 달라졌어요" },
+  { id: "saved-more", label: "계획보다 더 모았어요" },
+];
+
+function monthPeriod(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatPeriod(period: string) {
+  const [year, month] = period.split("-");
+  return `${year}년 ${Number(month)}월`;
+}
+
+function savingsDifferenceCopy(difference: number) {
+  if (difference > 0) return `계획보다 ${formatCurrency(difference)} 더 모았어요`;
+  if (difference < 0) return `계획보다 ${formatCurrency(Math.abs(difference))} 덜 모았어요`;
+  return "이번 달 계획만큼 모았어요";
+}
+
+function checkinReasonLabel(reason: MonthlyCheckinReason | null) {
+  return MONTHLY_CHECKIN_REASONS.find((option) => option.id === reason)?.label ?? null;
 }
 
 function trackEvent(eventName: string, properties: Record<string, string | number> = {}) {
@@ -116,8 +142,8 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
   const [planName, setPlanName] = useState("나의 목표 계획");
   const [updateOpen, setUpdateOpen] = useState(false);
-  const [updateAmount, setUpdateAmount] = useState<number | null>(null);
-  const [updateMemo, setUpdateMemo] = useState("");
+  const [actualSavingsManwon, setActualSavingsManwon] = useState<number | null>(null);
+  const [updateReason, setUpdateReason] = useState<MonthlyCheckinReason | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const calculatorRef = useRef<HTMLElement>(null);
   const wizardHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -203,6 +229,51 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
         },
       ]
     : [];
+  const activeCheckinPeriod = monthPeriod();
+  const existingMonthlyCheckin = savedPlan?.checkins.find(
+    (checkin) => checkin.period === activeCheckinPeriod && checkin.actualContribution !== null,
+  ) ?? null;
+  const hasMonthlySavingsRecord = savedPlan?.checkins.some(
+    (checkin) => checkin.actualContribution !== null,
+  ) ?? false;
+  const futureMonthlyContribution = selectedActionPlan?.monthlyContribution
+    ?? savedPlan?.actionPlan?.monthlyContribution
+    ?? savedPlan?.monthlyContribution
+    ?? 0;
+  const plannedMonthlySavings = existingMonthlyCheckin?.plannedContribution
+    ?? futureMonthlyContribution + (
+      hasMonthlySavingsRecord
+        ? 0
+        : selectedActionPlan?.upfrontAmount ?? savedPlan?.actionPlan?.upfrontAmount ?? 0
+    );
+  const savedTargetDate = savedPlan ? monthValueToDate(savedPlan.targetDate) : null;
+  const monthlyCheckinImpact = savedPlan
+    && savedTargetDate
+    && actualSavingsManwon !== null
+    && actualSavingsManwon >= 0
+    && actualSavingsManwon <= MAX_CURRENT_MANWON
+    ? analyzeMonthlyCheckin({
+        goalAmount: savedPlan.goalAmount,
+        currentAmount: savedPlan.currentAmount,
+        previousActualContribution: existingMonthlyCheckin?.actualContribution ?? 0,
+        plannedContribution: plannedMonthlySavings,
+        actualContribution: manwonToWon(actualSavingsManwon),
+        futureMonthlyContribution,
+        annualRate: savedPlan.annualRate,
+        targetDate: savedTargetDate,
+        checkinDate: new Date(),
+        feasibilityLimits: savedPlan.feasibilityLimits,
+      })
+    : null;
+  const monthlyCheckinBaselineShortage = existingMonthlyCheckin?.shortage !== null
+    && existingMonthlyCheckin?.shortage !== undefined
+    && existingMonthlyCheckin.shortageDifference !== null
+    ? existingMonthlyCheckin.shortage + existingMonthlyCheckin.shortageDifference
+    : savedPlan?.shortage ?? null;
+  const monthlyCheckinShortageDifference = monthlyCheckinImpact
+    && monthlyCheckinBaselineShortage !== null
+    ? monthlyCheckinBaselineShortage - monthlyCheckinImpact.shortage
+    : null;
 
   function scrollToCalculator() {
     requestAnimationFrame(() => calculatorRef.current?.scrollIntoView({
@@ -263,9 +334,32 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
     setCashflowValues(null);
     setEditingPlanId(plan.id);
     setPhase("result");
-    setUpdateAmount(wonToManwon(plan.currentAmount));
+    const currentCheckin = plan.checkins.find(
+      (checkin) => checkin.period === monthPeriod() && checkin.actualContribution !== null,
+    );
+    setActualSavingsManwon(
+      currentCheckin?.actualContribution === null || currentCheckin?.actualContribution === undefined
+        ? null
+        : wonToManwon(currentCheckin.actualContribution),
+    );
+    setUpdateReason(currentCheckin?.reason ?? null);
     setUpdateOpen(openUpdate);
     scrollToCalculator();
+  }
+
+  function toggleMonthlyUpdate() {
+    if (updateOpen) {
+      setUpdateOpen(false);
+      return;
+    }
+    setActualSavingsManwon(
+      existingMonthlyCheckin?.actualContribution === null
+        || existingMonthlyCheckin?.actualContribution === undefined
+        ? null
+        : wonToManwon(existingMonthlyCheckin.actualContribution),
+    );
+    setUpdateReason(existingMonthlyCheckin?.reason ?? null);
+    setUpdateOpen(true);
   }
 
   function handleSave() {
@@ -274,7 +368,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
     if (replacingExistingPlan && !window.confirm(`이 브라우저에 저장된 '${savedPlan.name}' 계획을 새 계획으로 교체할까요?`)) return;
     const planId = editingPlanId === savedPlan?.id
       ? savedPlan.id
-      : globalThis.crypto?.randomUUID?.() ?? String(Date.now());
+      : globalThis.crypto.randomUUID();
     const savedTargetDate = selectedActionPlan.id === "timeline" && selectedActionPlan.adjustedTargetDate
       ? dateToMonthValue(selectedActionPlan.adjustedTargetDate)
       : goalDate;
@@ -352,30 +446,33 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
   }
 
   function handleMonthlyUpdate() {
-    if (!savedPlan || updateAmount === null) return;
-    const targetDate = monthValueToDate(savedPlan.targetDate);
-    if (!targetDate || updateAmount > MAX_CURRENT_MANWON) return;
-    const updatedInput: SimulationInput = {
-      goalAmount: savedPlan.goalAmount,
-      currentAmount: manwonToWon(updateAmount),
-      monthlyNetFlow: selectedActionPlan?.monthlyContribution
-        ?? savedPlan.actionPlan?.monthlyContribution
-        ?? savedPlan.monthlyContribution,
-      annualRate: savedPlan.annualRate,
-      startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    if (!savedPlan || !monthlyCheckinImpact || actualSavingsManwon === null) return;
+    const now = new Date();
+    const currentPeriod = monthPeriod(now);
+    const shortageDifference = monthlyCheckinShortageDifference;
+    const nextCheckin = {
+      date: now.toISOString(),
+      period: currentPeriod,
+      plannedContribution: plannedMonthlySavings,
+      actualContribution: manwonToWon(actualSavingsManwon),
+      reason: updateReason,
+      currentAmount: monthlyCheckinImpact.currentAmount,
+      projectedAtTarget: monthlyCheckinImpact.projectedAtTarget,
+      shortage: monthlyCheckinImpact.shortage,
+      shortageDifference,
+      completedActionSteps,
+      memo: existingMonthlyCheckin?.memo ?? "",
     };
-    const updatedResult = simulatePlan(updatedInput);
-    const updatedAnalysis = analyzeGoalPlan(updatedInput, targetDate, savedPlan.feasibilityLimits);
-    const shortageDifference = savedPlan.shortage === null
-      ? null
-      : savedPlan.shortage - updatedAnalysis.shortage;
+    const checkins = existingMonthlyCheckin
+      ? savedPlan.checkins.map((checkin) => checkin === existingMonthlyCheckin ? nextCheckin : checkin)
+      : [...savedPlan.checkins, nextCheckin];
     const updatedPlan: SavedPlan = {
       ...savedPlan,
-      savedAt: new Date().toISOString(),
-      currentAmount: updatedInput.currentAmount,
-      arrivalDate: updatedResult.arrivalDate?.toISOString() ?? null,
-      projectedAtTarget: updatedAnalysis.projectedAtTarget,
-      shortage: updatedAnalysis.shortage,
+      savedAt: now.toISOString(),
+      currentAmount: monthlyCheckinImpact.currentAmount,
+      arrivalDate: monthlyCheckinImpact.arrivalDate?.toISOString() ?? null,
+      projectedAtTarget: monthlyCheckinImpact.projectedAtTarget,
+      shortage: monthlyCheckinImpact.shortage,
       actionPlan: selectedActionPlan
         ? {
             id: selectedActionPlan.id,
@@ -388,33 +485,22 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
           }
         : savedPlan.actionPlan,
       completedActionSteps: [],
-      checkins: [
-        ...savedPlan.checkins,
-        {
-          date: new Date().toISOString(),
-          currentAmount: updatedInput.currentAmount,
-          projectedAtTarget: updatedAnalysis.projectedAtTarget,
-          shortage: updatedAnalysis.shortage,
-          shortageDifference,
-          completedActionSteps,
-          memo: updateMemo.trim(),
-        },
-      ],
+      checkins,
     };
     setSavedPlan(savePlan(updatedPlan));
-    setCurrentManwon(updateAmount);
+    setCurrentManwon(wonToManwon(monthlyCheckinImpact.currentAmount));
     setCompletedActionSteps([]);
     setUpdateOpen(false);
-    setUpdateMemo("");
-    setStatusMessage(
-      shortageDifference === null
-        ? "이번 달 값으로 계획을 업데이트했어요. 이제부터 목표일까지의 부족분을 비교할 수 있어요."
-        : updatedAnalysis.shortage === 0
-          ? "현재 실행 계획으로 목표 날짜를 맞출 수 있어요."
-          : shortageDifference === 0
-            ? "목표일까지 예상 부족분은 지난 업데이트와 같아요."
-            : `목표일까지 예상 부족분이 ${formatCurrency(Math.abs(shortageDifference))} ${shortageDifference > 0 ? "줄었어요" : "늘었어요"}.`,
-    );
+    const savingsCopy = savingsDifferenceCopy(monthlyCheckinImpact.contributionDifference);
+    const goalCopy = shortageDifference === null || shortageDifference === 0
+      ? "목표 계획의 큰 흐름은 그대로예요."
+      : monthlyCheckinImpact.shortage === 0
+        ? "현재 계획으로 목표 날짜를 맞출 수 있어요."
+        : `목표일까지 예상 부족분이 ${formatCurrency(Math.abs(shortageDifference))} ${shortageDifference > 0 ? "줄었어요" : "늘었어요"}.`;
+    const recoveryCopy = monthlyCheckinImpact.contributionDifference < 0
+      ? ` 다음 달에 ${formatCurrency(Math.abs(monthlyCheckinImpact.contributionDifference))} 보완하면 누적 계획으로 돌아와요.`
+      : "";
+    setStatusMessage(`${savingsCopy}. ${goalCopy}${recoveryCopy}`);
     trackEvent("monthly_update_saved");
   }
 
@@ -883,9 +969,77 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
 
             {savedPlan && editingPlanId === savedPlan.id && (
               <section className="result-section update-section" aria-labelledby="update-title">
-                <div className="section-heading"><div><span className="section-kicker">저장된 계획 전용</span><h2 id="update-title">이번 달 업데이트</h2><p>현재 자산을 바꾸고, 목표 날짜까지 예상 부족분이 얼마나 달라졌는지 확인하세요.</p></div><button className="text-action" type="button" onClick={() => { setUpdateOpen(!updateOpen); setUpdateAmount(wonToManwon(savedPlan.currentAmount)); }}>{updateOpen ? "닫기" : "업데이트하기"}</button></div>
-                {updateOpen && <div className="update-form"><MoneyInput id="update-amount" label="이번 달 지금까지 모은 돈" hint="오늘 기준으로 목표에 사용할 수 있는 금액을 입력하세요." value={updateAmount} onChange={setUpdateAmount} maxValue={MAX_CURRENT_MANWON} quickAmounts={[{ label: "+30만 원", value: wonToManwon(savedPlan.currentAmount) + 30 }, { label: "+50만 원", value: wonToManwon(savedPlan.currentAmount) + 50 }, { label: "+100만 원", value: wonToManwon(savedPlan.currentAmount) + 100 }]} /><label htmlFor="update-memo">메모 (선택)</label><input id="update-memo" value={updateMemo} maxLength={300} onChange={(event) => setUpdateMemo(event.target.value)} placeholder="이번 달에 달라진 점" /><button className="button button--primary" type="button" disabled={updateAmount === null || updateAmount > MAX_CURRENT_MANWON} onClick={handleMonthlyUpdate}>이번 달 기록 저장</button></div>}
-                {savedPlan.checkins.length > 0 && <div className="checkin-list"><h3>최근 기록</h3>{savedPlan.checkins.slice(-3).reverse().map((checkin) => <div key={checkin.date}><span>{new Date(checkin.date).toLocaleDateString("ko-KR")}</span><strong>{checkin.shortageDifference === null ? "새 부족분 기준" : checkin.shortage === 0 ? "목표 날짜에 맞출 수 있음" : shortageChangeCopy(checkin.shortageDifference)}</strong></div>)}</div>}
+                <div className="section-heading">
+                  <div>
+                    <span className="section-kicker">한 달에 숫자 하나</span>
+                    <h2 id="update-title">이번 달 얼마 모았나요?</h2>
+                    <p>실제로 모은 돈만 입력하면 계획과 목표 영향을 비교해요.</p>
+                  </div>
+                  <button className="text-action" type="button" onClick={toggleMonthlyUpdate}>{updateOpen ? "닫기" : existingMonthlyCheckin ? "기록 수정" : "기록하기"}</button>
+                </div>
+                {updateOpen && (
+                  <div className="update-form">
+                    <MoneyInput
+                      id="actual-monthly-savings"
+                      label="이번 달 실제로 모은 돈"
+                      hint="목표를 위해 새로 남긴 금액만 입력하세요."
+                      value={actualSavingsManwon}
+                      onChange={setActualSavingsManwon}
+                      maxValue={MAX_CURRENT_MANWON}
+                      quickAmounts={[
+                        { label: "계획만큼", value: wonToManwon(plannedMonthlySavings) },
+                        { label: "10만 원 덜", value: Math.max(0, wonToManwon(plannedMonthlySavings) - 10) },
+                        { label: "10만 원 더", value: wonToManwon(plannedMonthlySavings) + 10 },
+                      ]}
+                    />
+                    {plannedMonthlySavings > futureMonthlyContribution && (
+                      <p className="update-plan-note">첫 기록이라 시작 자금 {formatCurrency(plannedMonthlySavings - futureMonthlyContribution)}도 계획에 포함했어요.</p>
+                    )}
+                    {monthlyCheckinImpact && (
+                      <div className="monthly-checkin-preview" aria-live="polite">
+                        <div><span>계획</span><strong>{formatCurrency(plannedMonthlySavings)}</strong></div>
+                        <div><span>실제</span><strong>{formatCurrency(manwonToWon(actualSavingsManwon ?? 0))}</strong></div>
+                        <div><span>차이</span><strong className={monthlyCheckinImpact.contributionDifference < 0 ? "negative" : ""}>{monthlyCheckinImpact.contributionDifference > 0 ? "+" : ""}{formatCurrency(monthlyCheckinImpact.contributionDifference)}</strong></div>
+                        <p><strong>{savingsDifferenceCopy(monthlyCheckinImpact.contributionDifference)}</strong>{monthlyCheckinShortageDifference === null || monthlyCheckinShortageDifference === 0 ? " 목표 계획의 큰 흐름은 그대로예요." : ` 목표일까지 예상 부족분이 ${formatCurrency(Math.abs(monthlyCheckinShortageDifference))} ${monthlyCheckinShortageDifference > 0 ? "줄어요." : "늘어요."}`}</p>
+                      </div>
+                    )}
+                    <fieldset className="checkin-reasons">
+                      <legend>달라진 이유 (선택)</legend>
+                      <div>
+                        {MONTHLY_CHECKIN_REASONS.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            aria-pressed={updateReason === option.id}
+                            onClick={() => setUpdateReason(updateReason === option.id ? null : option.id)}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </fieldset>
+                    <button className="button button--primary" type="button" disabled={!monthlyCheckinImpact} onClick={handleMonthlyUpdate}>{existingMonthlyCheckin ? "이번 달 기록 수정" : "이번 달 기록 저장"}</button>
+                  </div>
+                )}
+                {savedPlan.checkins.length > 0 && (
+                  <div className="checkin-list">
+                    <h3>최근 기록</h3>
+                    <ul>
+                      {savedPlan.checkins.slice(-3).reverse().map((checkin) => {
+                        const reason = checkinReasonLabel(checkin.reason);
+                        return (
+                          <li key={checkin.date}>
+                            <span>{formatPeriod(checkin.period)}</span>
+                            <div>
+                              <strong>{checkin.actualContribution === null || checkin.plannedContribution === null ? "이전 방식으로 저장한 기록" : `계획 ${formatCurrency(checkin.plannedContribution)} · 실제 ${formatCurrency(checkin.actualContribution)}`}</strong>
+                              <small>{checkin.actualContribution === null || checkin.plannedContribution === null ? (checkin.shortageDifference === null ? "새 부족분 기준" : checkin.shortage === 0 ? "목표 날짜에 맞출 수 있음" : shortageChangeCopy(checkin.shortageDifference)) : `${savingsDifferenceCopy(checkin.actualContribution - checkin.plannedContribution)}${reason ? ` · ${reason}` : ""}`}</small>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
               </section>
             )}
 

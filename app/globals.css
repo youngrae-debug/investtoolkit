@@ -456,15 +456,31 @@ main { min-height: 70vh; }
 .save-section > * { position: relative; z-index: 1; }
 .save-form > label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 750; }
 .save-form > div { display: flex; gap: 8px; }
-.save-form input, .update-form > input { min-width: 0; flex: 1; min-height: 48px; border: 1px solid #b8cec7; border-radius: 12px; padding: 0 13px; background: rgba(255,255,255,.92); box-shadow: inset 0 1px 0 white; }
+.save-form input { min-width: 0; flex: 1; min-height: 48px; border: 1px solid #b8cec7; border-radius: 12px; padding: 0 13px; background: rgba(255,255,255,.92); box-shadow: inset 0 1px 0 white; }
 .update-form { margin-top: 24px; padding: 24px; border-radius: 16px; background: #f2f6f3; }
-.update-form > label { display: block; margin: 18px 0 6px; font-size: 13px; font-weight: 750; }
-.update-form > input { width: 100%; }
 .update-form > .button { margin-top: 16px; }
+.update-plan-note { margin: 9px 0 0; color: var(--ink-soft); font-size: 12px; }
+.monthly-checkin-preview { margin-top: 18px; overflow: hidden; display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #cadfd8; border-radius: 14px; background: white; }
+.monthly-checkin-preview > div { padding: 14px 16px; }
+.monthly-checkin-preview > div + div { border-left: 1px solid #e0ebe7; }
+.monthly-checkin-preview span, .monthly-checkin-preview strong { display: block; }
+.monthly-checkin-preview span { color: var(--ink-soft); font-size: 11px; }
+.monthly-checkin-preview strong { margin-top: 4px; font-size: 15px; }
+.monthly-checkin-preview > p { grid-column: 1 / -1; margin: 0; padding: 14px 16px; border-top: 1px solid #e0ebe7; color: var(--ink-soft); background: #f8fbfa; font-size: 12px; line-height: 1.65; }
+.monthly-checkin-preview > p strong { display: inline; margin: 0; color: var(--ink); font-size: inherit; }
+.checkin-reasons { min-width: 0; margin: 18px 0 0; padding: 0; border: 0; }
+.checkin-reasons legend { padding: 0; color: var(--ink); font-size: 12px; font-weight: 780; }
+.checkin-reasons > div { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 7px; }
+.checkin-reasons button { min-height: 38px; padding: 0 12px; border: 1px solid #c8d9d4; border-radius: 999px; color: var(--ink-soft); background: white; cursor: pointer; font-size: 12px; }
+.checkin-reasons button[aria-pressed="true"] { border-color: var(--teal); color: var(--teal-dark); background: var(--teal-pale); font-weight: 780; }
 .checkin-list { margin-top: 24px; border-top: 1px solid var(--line); }
 .checkin-list h3 { font-size: 14px; }
-.checkin-list > div { padding: 10px 0; display: flex; justify-content: space-between; border-top: 1px solid #edf0ee; font-size: 13px; }
-.checkin-list > div span { color: var(--ink-soft); }
+.checkin-list ul { margin: 0; padding: 0; list-style: none; }
+.checkin-list li { padding: 12px 0; display: flex; justify-content: space-between; gap: 18px; border-top: 1px solid #edf0ee; font-size: 13px; }
+.checkin-list li > span { flex: 0 0 auto; color: var(--ink-soft); }
+.checkin-list li > div { text-align: right; }
+.checkin-list li strong, .checkin-list li small { display: block; }
+.checkin-list li small { margin-top: 3px; color: var(--ink-soft); font-size: 11px; }
 .result-actions { padding: 32px 34px; border-radius: 22px; color: white; background: linear-gradient(145deg, #102f36, #0b292f); }
 .action-buttons { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px; }
 .result-actions .button--quiet { color: white; border-color: rgba(255,255,255,.2); background: rgba(255,255,255,.06); }
@@ -496,7 +512,7 @@ main { min-height: 70vh; }
 .question-cloud { margin-top: 28px; display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
 .question-cloud span { padding: 10px 14px; border: 1px solid rgba(16,47,54,.08); border-radius: 999px; color: var(--ink-soft); background: rgba(255,255,255,.62); box-shadow: 0 5px 14px rgba(16,47,54,.03); font-size: 12px; }
 .toast:empty { display: none; }
-.toast { position: fixed; z-index: 120; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 12px; color: white; background: var(--ink); box-shadow: 0 12px 30px rgba(0,0,0,.2); font-size: 13px; }
+.toast { position: fixed; z-index: 120; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 12px; color: white; background: var(--ink); box-shadow: 0 12px 30px rgba(0,0,0,.2); font-size: 13px; pointer-events: none; }
 
 .site-footer { padding: 50px max(var(--site-gutter), calc((100% - var(--site-inner)) / 2)); color: #dce6e7; background: #0b292f; }
 .site-footer__grid { display: grid; grid-template-columns: 1fr auto; gap: 60px; }
@@ -632,6 +648,12 @@ main { min-height: 70vh; }
   .chart-bar-wrap small { transform: rotate(-45deg); transform-origin: center; margin-top: 13px; }
   .detail-grid { grid-template-columns: 1fr; }
   .save-form > div { display: grid; }
+  .monthly-checkin-preview { grid-template-columns: 1fr; }
+  .monthly-checkin-preview > div + div { border-left: 0; border-top: 1px solid #e0ebe7; }
+  .monthly-checkin-preview > p { grid-column: 1; }
+  .checkin-reasons button { flex: 1 1 calc(50% - 7px); }
+  .checkin-list li { display: grid; gap: 5px; }
+  .checkin-list li > div { text-align: left; }
   .action-buttons { display: grid; grid-template-columns: 1fr 1fr; }
   .monthly-action-list li { grid-template-columns: 44px 1fr; }
   .monthly-action-list .action-when { width: fit-content; grid-column: 2; }

@@ -127,4 +127,41 @@ describe("saved plan migration", () => {
     expect(plan.actionPlan).toBeNull();
     expect(plan.completedActionSteps).toEqual([]);
   });
+
+  it("moves version 5 updates to the simple monthly savings schema", () => {
+    const plan = importBackup(JSON.stringify({
+      schemaVersion: 5,
+      id: "version-five-plan",
+      name: "기존 월간 기록",
+      savedAt: "2026-07-15T00:00:00.000Z",
+      goalAmount: 100_000_000,
+      currentAmount: 31_000_000,
+      monthlyContribution: 1_000_000,
+      annualRate: 0,
+      targetDate: "2031-07",
+      arrivalDate: "2032-04-01T00:00:00.000Z",
+      projectedAtTarget: 91_000_000,
+      shortage: 9_000_000,
+      actionPlan: { id: "monthly", title: "매달 나눠 채우기", monthlyContribution: 1_170_000, upfrontAmount: 0, adjustedTargetDate: "2031-07" },
+      completedActionSteps: [],
+      feasibilityLimits: null,
+      checkins: [{
+        date: "2026-07-15T00:00:00.000Z",
+        currentAmount: 31_000_000,
+        projectedAtTarget: 91_000_000,
+        shortage: 9_000_000,
+        shortageDifference: 1_000_000,
+        completedActionSteps: [],
+        memo: "이전 기록",
+      }],
+    }));
+
+    expect(plan.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(plan.checkins[0]).toMatchObject({
+      period: "2026-07",
+      plannedContribution: null,
+      actualContribution: null,
+      reason: null,
+    });
+  });
 });
