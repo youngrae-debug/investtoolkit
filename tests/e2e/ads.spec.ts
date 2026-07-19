@@ -3,6 +3,19 @@ import { expect, test } from "@playwright/test";
 const adsConfigured = /^ca-pub-\d{16}$/.test(process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID ?? "")
   && /^\d{10}$/.test(process.env.NEXT_PUBLIC_ADSENSE_GUIDE_SLOT_ID ?? "");
 
+test("renders the guide comparison and checklist without page overflow", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("invetk-analytics-consent", "denied");
+    window.localStorage.setItem("invetk-ads-consent", "denied");
+  });
+  await page.goto("/guides/monthly-500k-to-100m");
+
+  await expect(page.getByRole("heading", { name: "출발 자산과 월 적립액을 함께 비교하면" })).toBeVisible();
+  await expect(page.locator(".guide-comparison tbody tr")).toHaveCount(3);
+  await expect(page.locator(".guide-checklist li")).toHaveCount(3);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+});
+
 test("never places AdSense code on the calculator or policy-benefit routes", async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem("invetk-analytics-consent", "denied");

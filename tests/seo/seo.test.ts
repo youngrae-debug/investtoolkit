@@ -103,6 +103,20 @@ describe("structured data", () => {
   });
 });
 
+describe("guide content depth", () => {
+  it("gives every guide its own comparison and application checklist", () => {
+    const comparisonTitles = new Set(guides.map((guide) => guide.comparison.title));
+
+    expect(comparisonTitles.size).toBe(guides.length);
+    for (const guide of guides) {
+      expect(guide.comparison.description.length).toBeGreaterThan(30);
+      expect(guide.comparison.rows).toHaveLength(3);
+      expect(guide.checklist).toHaveLength(3);
+      expect(new Set(guide.comparison.rows.map((row) => row.condition)).size).toBe(3);
+    }
+  });
+});
+
 describe("crawler discovery files", () => {
   it("publishes each fixed route and guide once in the sitemap", () => {
     const entries = sitemap();
