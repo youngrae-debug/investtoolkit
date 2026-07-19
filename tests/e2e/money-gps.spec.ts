@@ -80,6 +80,7 @@ test("creates three goal-date solutions and restores a saved plan", async ({ pag
 
   await page.getByRole("button", { name: "계획 저장" }).click();
   await expect(page.locator(".toast")).toContainText("계획을 이 브라우저에 저장했어요");
+  await expect(page.getByRole("button", { name: "저장됨" })).toBeDisabled();
   await page.reload();
   await expect(page.getByRole("heading", { name: "나의 목표 계획의 경로를 이어볼까요?" })).toBeVisible();
   await expect(page.getByRole("button", { name: "이번 달 업데이트" })).toBeVisible();
@@ -125,6 +126,8 @@ test("updates a saved limited plan and records the shortage change", async ({ pa
   await page.getByRole("button", { name: "계획 저장" }).click();
 
   await page.getByRole("button", { name: "기록하기" }).click();
+  await expect(page.locator(".toast")).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
   await page.getByRole("textbox", { name: "이번 달 실제로 모은 돈", exact: true }).fill("210");
   await page.getByRole("button", { name: "수입이 달라졌어요" }).click();
   await page.getByRole("button", { name: "이번 달 기록 저장" }).click();
@@ -133,6 +136,8 @@ test("updates a saved limited plan and records the shortage change", async ({ pa
   await expect(page.locator(".toast")).toContainText("예상 부족분이 100만 원 줄었어요");
   await expect(page.locator(".checkin-list")).toContainText("계획 110만 원 · 실제 210만 원");
   await expect(page.locator(".checkin-list")).toContainText("수입이 달라졌어요");
+  await expect(page.getByRole("heading", { name: "이번 달 얼마 모았나요?" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "이번 달 얼마 모았나요?" })).toBeInViewport();
 });
 
 test("exports a saved plan and restores the backup", async ({ page }, testInfo) => {
@@ -172,6 +177,7 @@ test("keeps monthly updates aligned with the currently displayed action", async 
   await expect(page.locator(".solution-card--selected")).toContainText("115만 원");
 
   await page.getByRole("button", { name: "기록 수정" }).click();
+  await expect(page.locator("#monthly-update")).not.toContainText("첫 기록이라 시작 자금");
   await page.getByRole("button", { name: "이번 달 기록 수정" }).press("Enter");
   const savedState = await page.evaluate(() => {
     const raw = window.localStorage.getItem("invetk-money-gps");

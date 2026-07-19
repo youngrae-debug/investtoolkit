@@ -147,6 +147,8 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
   const [statusMessage, setStatusMessage] = useState("");
   const calculatorRef = useRef<HTMLElement>(null);
   const wizardHeadingRef = useRef<HTMLHeadingElement>(null);
+  const updateSectionRef = useRef<HTMLElement>(null);
+  const updateHeadingRef = useRef<HTMLHeadingElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -176,6 +178,12 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
       }
     });
   }, [autoStart]);
+
+  useEffect(() => {
+    if (!statusMessage) return;
+    const timeout = window.setTimeout(() => setStatusMessage(""), 4_500);
+    return () => window.clearTimeout(timeout);
+  }, [statusMessage]);
 
   const { baseInput, goalAnalysis, goalDateIsFuture, parsedGoalDate, result } = useMoneyGpsAnalysis({
     annualRate,
@@ -240,12 +248,11 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
     ?? savedPlan?.actionPlan?.monthlyContribution
     ?? savedPlan?.monthlyContribution
     ?? 0;
+  const firstCheckinUpfrontAmount = !existingMonthlyCheckin && !hasMonthlySavingsRecord
+    ? selectedActionPlan?.upfrontAmount ?? savedPlan?.actionPlan?.upfrontAmount ?? 0
+    : 0;
   const plannedMonthlySavings = existingMonthlyCheckin?.plannedContribution
-    ?? futureMonthlyContribution + (
-      hasMonthlySavingsRecord
-        ? 0
-        : selectedActionPlan?.upfrontAmount ?? savedPlan?.actionPlan?.upfrontAmount ?? 0
-    );
+    ?? futureMonthlyContribution + firstCheckinUpfrontAmount;
   const savedTargetDate = savedPlan ? monthValueToDate(savedPlan.targetDate) : null;
   const monthlyCheckinImpact = savedPlan
     && savedTargetDate
@@ -274,6 +281,37 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
     && monthlyCheckinBaselineShortage !== null
     ? monthlyCheckinBaselineShortage - monthlyCheckinImpact.shortage
     : null;
+  const displayedTargetDate = selectedActionPlan?.id === "timeline"
+    && selectedActionPlan.adjustedTargetDate
+    ? dateToMonthValue(selectedActionPlan.adjustedTargetDate)
+    : goalDate;
+  const savedFeasibilityLimits = savedPlan?.feasibilityLimits ?? null;
+  const feasibilityLimitsMatch = savedFeasibilityLimits === null
+    ? feasibilityLimits === null
+    : savedFeasibilityLimits.maxMonthlyIncrease === feasibilityLimits?.maxMonthlyIncrease
+      && savedFeasibilityLimits.maxUpfrontAmount === feasibilityLimits?.maxUpfrontAmount;
+  const completedStepsMatch = savedPlan?.completedActionSteps.length === completedActionSteps.length
+    && completedActionSteps.every((stepIndex, index) => savedPlan?.completedActionSteps[index] === stepIndex);
+  const isCurrentPlanSaved = Boolean(
+    savedPlan
+    && editingPlanId === savedPlan.id
+    && baseInput
+    && selectedActionPlan
+    && planName.trim() === savedPlan.name
+    && baseInput.goalAmount === savedPlan.goalAmount
+    && baseInput.currentAmount === savedPlan.currentAmount
+    && baseInput.monthlyNetFlow === savedPlan.monthlyContribution
+    && baseInput.annualRate === savedPlan.annualRate
+    && displayedTargetDate === savedPlan.targetDate
+    && selectedActionPlan.id === savedPlan.actionPlan?.id
+    && selectedActionPlan.monthlyContribution === savedPlan.actionPlan.monthlyContribution
+    && selectedActionPlan.upfrontAmount === savedPlan.actionPlan.upfrontAmount
+    && (selectedActionPlan.adjustedTargetDate
+      ? dateToMonthValue(selectedActionPlan.adjustedTargetDate)
+      : null) === savedPlan.actionPlan.adjustedTargetDate
+    && feasibilityLimitsMatch
+    && completedStepsMatch
+  );
 
   function scrollToCalculator() {
     requestAnimationFrame(() => calculatorRef.current?.scrollIntoView({
@@ -352,6 +390,7 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
       setUpdateOpen(false);
       return;
     }
+    setStatusMessage("");
     setActualSavingsManwon(
       existingMonthlyCheckin?.actualContribution === null
         || existingMonthlyCheckin?.actualContribution === undefined
@@ -491,6 +530,13 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
     setCurrentManwon(wonToManwon(monthlyCheckinImpact.currentAmount));
     setCompletedActionSteps([]);
     setUpdateOpen(false);
+    requestAnimationFrame(() => {
+      updateSectionRef.current?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+      updateHeadingRef.current?.focus({ preventScroll: true });
+    });
     const savingsCopy = savingsDifferenceCopy(monthlyCheckinImpact.contributionDifference);
     const goalCopy = shortageDifference === null || shortageDifference === 0
       ? "목표 계획의 큰 흐름은 그대로예요."
@@ -889,6 +935,87 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
               )}
             </section>
 
+            <section id="save-plan" className="result-section save-section" aria-labelledby="save-title">
+              <div><span className="section-kicker">다음 달에도 이어보기</span><h2 id="save-title">선택한 실행 계획을 저장할까요?</h2><p>{selectedActionPlan ? `'${selectedActionPlan.title}'과 이번 달 체크 상태를 현재 브라우저에 저장합니다.` : "먼저 위 실행안 중 하나를 직접 선택해 주세요."} INVETK 서버로 전송되지 않습니다.</p></div>
+              <div className="save-form"><label htmlFor="plan-name">계획 이름</label><div><input id="plan-name" value={planName} maxLength={60} onChange={(event) => setPlanName(event.target.value)} /><button className="button button--primary" type="button" disabled={!selectedActionPlan || !planName.trim() || isCurrentPlanSaved} onClick={handleSave}>{isCurrentPlanSaved ? "저장됨" : editingPlanId === savedPlan?.id ? "변경 내용 저장" : savedPlan ? "기존 계획 교체" : "계획 저장"}</button></div></div>
+            </section>
+
+            {savedPlan && editingPlanId === savedPlan.id && (
+              <section id="monthly-update" ref={updateSectionRef} className="result-section update-section" aria-labelledby="update-title">
+                <div className="section-heading">
+                  <div>
+                    <span className="section-kicker">한 달에 숫자 하나</span>
+                    <h2 id="update-title" ref={updateHeadingRef} tabIndex={-1}>이번 달 얼마 모았나요?</h2>
+                    <p>실제로 모은 돈만 입력하면 계획과 목표 영향을 비교해요.</p>
+                  </div>
+                  <button className="text-action" type="button" onClick={toggleMonthlyUpdate}>{updateOpen ? "닫기" : existingMonthlyCheckin ? "기록 수정" : "기록하기"}</button>
+                </div>
+                {updateOpen && (
+                  <div className="update-form">
+                    <MoneyInput
+                      id="actual-monthly-savings"
+                      label="이번 달 실제로 모은 돈"
+                      hint="목표를 위해 새로 남긴 금액만 입력하세요."
+                      value={actualSavingsManwon}
+                      onChange={setActualSavingsManwon}
+                      maxValue={MAX_CURRENT_MANWON}
+                      quickAmounts={[
+                        { label: "계획만큼", value: wonToManwon(plannedMonthlySavings) },
+                        { label: "10만 원 덜", value: Math.max(0, wonToManwon(plannedMonthlySavings) - 10) },
+                        { label: "10만 원 더", value: wonToManwon(plannedMonthlySavings) + 10 },
+                      ]}
+                    />
+                    {firstCheckinUpfrontAmount > 0 && (
+                      <p className="update-plan-note">첫 기록이라 시작 자금 {formatCurrency(firstCheckinUpfrontAmount)}도 계획에 포함했어요.</p>
+                    )}
+                    {monthlyCheckinImpact && (
+                      <div className="monthly-checkin-preview" aria-live="polite">
+                        <div><span>계획</span><strong>{formatCurrency(plannedMonthlySavings)}</strong></div>
+                        <div><span>실제</span><strong>{formatCurrency(manwonToWon(actualSavingsManwon ?? 0))}</strong></div>
+                        <div><span>차이</span><strong className={monthlyCheckinImpact.contributionDifference < 0 ? "negative" : ""}>{monthlyCheckinImpact.contributionDifference > 0 ? "+" : ""}{formatCurrency(monthlyCheckinImpact.contributionDifference)}</strong></div>
+                        <p><strong>{savingsDifferenceCopy(monthlyCheckinImpact.contributionDifference)}</strong>{monthlyCheckinShortageDifference === null || monthlyCheckinShortageDifference === 0 ? " 목표 계획의 큰 흐름은 그대로예요." : ` 목표일까지 예상 부족분이 ${formatCurrency(Math.abs(monthlyCheckinShortageDifference))} ${monthlyCheckinShortageDifference > 0 ? "줄어요." : "늘어요."}`}</p>
+                      </div>
+                    )}
+                    <fieldset className="checkin-reasons">
+                      <legend>달라진 이유 (선택)</legend>
+                      <div>
+                        {MONTHLY_CHECKIN_REASONS.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            aria-pressed={updateReason === option.id}
+                            onClick={() => setUpdateReason(updateReason === option.id ? null : option.id)}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </fieldset>
+                    <button className="button button--primary" type="button" disabled={!monthlyCheckinImpact} onClick={handleMonthlyUpdate}>{existingMonthlyCheckin ? "이번 달 기록 수정" : "이번 달 기록 저장"}</button>
+                  </div>
+                )}
+                {savedPlan.checkins.length > 0 && (
+                  <div className="checkin-list">
+                    <h3>최근 기록</h3>
+                    <ul>
+                      {savedPlan.checkins.slice(-3).reverse().map((checkin) => {
+                        const reason = checkinReasonLabel(checkin.reason);
+                        return (
+                          <li key={checkin.date}>
+                            <span>{formatPeriod(checkin.period)}</span>
+                            <div>
+                              <strong>{checkin.actualContribution === null || checkin.plannedContribution === null ? "이전 방식으로 저장한 기록" : `계획 ${formatCurrency(checkin.plannedContribution)} · 실제 ${formatCurrency(checkin.actualContribution)}`}</strong>
+                              <small>{checkin.actualContribution === null || checkin.plannedContribution === null ? (checkin.shortageDifference === null ? "새 부족분 기준" : checkin.shortage === 0 ? "목표 날짜에 맞출 수 있음" : shortageChangeCopy(checkin.shortageDifference)) : `${savingsDifferenceCopy(checkin.actualContribution - checkin.plannedContribution)}${reason ? ` · ${reason}` : ""}`}</small>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+              </section>
+            )}
+
             <PolicyBenefitFinder input={baseInput} targetMonths={goalAnalysis.monthsRemaining} />
 
             <section className="result-section core-inputs" aria-labelledby="inputs-title">
@@ -961,87 +1088,6 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
                 </details>
               </section>
             </details>
-
-            <section className="result-section save-section" aria-labelledby="save-title">
-              <div><span className="section-kicker">다음 달에도 이어보기</span><h2 id="save-title">선택한 실행 계획을 저장할까요?</h2><p>{selectedActionPlan ? `'${selectedActionPlan.title}'과 이번 달 체크 상태를 현재 브라우저에 저장합니다.` : "먼저 위 실행안 중 하나를 직접 선택해 주세요."} INVETK 서버로 전송되지 않습니다.</p></div>
-              <div className="save-form"><label htmlFor="plan-name">계획 이름</label><div><input id="plan-name" value={planName} maxLength={60} onChange={(event) => setPlanName(event.target.value)} /><button className="button button--primary" type="button" disabled={!selectedActionPlan || !planName.trim()} onClick={handleSave}>{editingPlanId === savedPlan?.id ? "변경 내용 저장" : savedPlan ? "기존 계획 교체" : "계획 저장"}</button></div></div>
-            </section>
-
-            {savedPlan && editingPlanId === savedPlan.id && (
-              <section className="result-section update-section" aria-labelledby="update-title">
-                <div className="section-heading">
-                  <div>
-                    <span className="section-kicker">한 달에 숫자 하나</span>
-                    <h2 id="update-title">이번 달 얼마 모았나요?</h2>
-                    <p>실제로 모은 돈만 입력하면 계획과 목표 영향을 비교해요.</p>
-                  </div>
-                  <button className="text-action" type="button" onClick={toggleMonthlyUpdate}>{updateOpen ? "닫기" : existingMonthlyCheckin ? "기록 수정" : "기록하기"}</button>
-                </div>
-                {updateOpen && (
-                  <div className="update-form">
-                    <MoneyInput
-                      id="actual-monthly-savings"
-                      label="이번 달 실제로 모은 돈"
-                      hint="목표를 위해 새로 남긴 금액만 입력하세요."
-                      value={actualSavingsManwon}
-                      onChange={setActualSavingsManwon}
-                      maxValue={MAX_CURRENT_MANWON}
-                      quickAmounts={[
-                        { label: "계획만큼", value: wonToManwon(plannedMonthlySavings) },
-                        { label: "10만 원 덜", value: Math.max(0, wonToManwon(plannedMonthlySavings) - 10) },
-                        { label: "10만 원 더", value: wonToManwon(plannedMonthlySavings) + 10 },
-                      ]}
-                    />
-                    {plannedMonthlySavings > futureMonthlyContribution && (
-                      <p className="update-plan-note">첫 기록이라 시작 자금 {formatCurrency(plannedMonthlySavings - futureMonthlyContribution)}도 계획에 포함했어요.</p>
-                    )}
-                    {monthlyCheckinImpact && (
-                      <div className="monthly-checkin-preview" aria-live="polite">
-                        <div><span>계획</span><strong>{formatCurrency(plannedMonthlySavings)}</strong></div>
-                        <div><span>실제</span><strong>{formatCurrency(manwonToWon(actualSavingsManwon ?? 0))}</strong></div>
-                        <div><span>차이</span><strong className={monthlyCheckinImpact.contributionDifference < 0 ? "negative" : ""}>{monthlyCheckinImpact.contributionDifference > 0 ? "+" : ""}{formatCurrency(monthlyCheckinImpact.contributionDifference)}</strong></div>
-                        <p><strong>{savingsDifferenceCopy(monthlyCheckinImpact.contributionDifference)}</strong>{monthlyCheckinShortageDifference === null || monthlyCheckinShortageDifference === 0 ? " 목표 계획의 큰 흐름은 그대로예요." : ` 목표일까지 예상 부족분이 ${formatCurrency(Math.abs(monthlyCheckinShortageDifference))} ${monthlyCheckinShortageDifference > 0 ? "줄어요." : "늘어요."}`}</p>
-                      </div>
-                    )}
-                    <fieldset className="checkin-reasons">
-                      <legend>달라진 이유 (선택)</legend>
-                      <div>
-                        {MONTHLY_CHECKIN_REASONS.map((option) => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            aria-pressed={updateReason === option.id}
-                            onClick={() => setUpdateReason(updateReason === option.id ? null : option.id)}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </fieldset>
-                    <button className="button button--primary" type="button" disabled={!monthlyCheckinImpact} onClick={handleMonthlyUpdate}>{existingMonthlyCheckin ? "이번 달 기록 수정" : "이번 달 기록 저장"}</button>
-                  </div>
-                )}
-                {savedPlan.checkins.length > 0 && (
-                  <div className="checkin-list">
-                    <h3>최근 기록</h3>
-                    <ul>
-                      {savedPlan.checkins.slice(-3).reverse().map((checkin) => {
-                        const reason = checkinReasonLabel(checkin.reason);
-                        return (
-                          <li key={checkin.date}>
-                            <span>{formatPeriod(checkin.period)}</span>
-                            <div>
-                              <strong>{checkin.actualContribution === null || checkin.plannedContribution === null ? "이전 방식으로 저장한 기록" : `계획 ${formatCurrency(checkin.plannedContribution)} · 실제 ${formatCurrency(checkin.actualContribution)}`}</strong>
-                              <small>{checkin.actualContribution === null || checkin.plannedContribution === null ? (checkin.shortageDifference === null ? "새 부족분 기준" : checkin.shortage === 0 ? "목표 날짜에 맞출 수 있음" : shortageChangeCopy(checkin.shortageDifference)) : `${savingsDifferenceCopy(checkin.actualContribution - checkin.plannedContribution)}${reason ? ` · ${reason}` : ""}`}</small>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                )}
-              </section>
-            )}
 
             <details className="result-disclosure result-disclosure--dark">
               <summary><span>결과 활용</span><strong>공유와 데이터 관리</strong><small>공유 문장에는 개인 금액을 넣지 않아요</small></summary>
