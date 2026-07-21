@@ -20,7 +20,7 @@ export function SiteFooter() {
       </div>
       <div className="site-footer__bottom">
         <span>© 2026 INVETK</span>
-        <span>invetk.com · 마지막 업데이트 2026년 7월 17일</span>
+        <span>금융 입력은 이 브라우저 안에서만 처리합니다.</span>
       </div>
     </footer>
   );

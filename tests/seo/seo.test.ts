@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import manifest from "@/app/manifest";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
-import { guides } from "@/content/guides";
+import { GUIDE_MODIFIED_DATE, GUIDE_PUBLISHED_DATE, guides } from "@/content/guides";
 import {
   absoluteUrl,
   createPageMetadata,
@@ -95,6 +95,10 @@ describe("structured data", () => {
       "FAQPage",
       "BreadcrumbList",
     ]);
+    expect(graph.find((item) => item["@type"] === "Article")).toMatchObject({
+      datePublished: GUIDE_PUBLISHED_DATE,
+      dateModified: GUIDE_MODIFIED_DATE,
+    });
     expect(graph.find((item) => item["@type"] === "FAQPage")).toMatchObject({
       mainEntity: expect.arrayContaining([
         expect.objectContaining({ name: guides[0].faq[0].question }),
@@ -128,6 +132,9 @@ describe("crawler discovery files", () => {
     for (const guide of guides) {
       expect(urls).toContain(absoluteUrl(`/guides/${guide.slug}`));
     }
+    expect(
+      entries.find((entry) => entry.url === absoluteUrl(`/guides/${guides[0].slug}`))?.lastModified,
+    ).toEqual(new Date(GUIDE_MODIFIED_DATE));
   });
 
   it("points crawlers at the canonical host and sitemap", () => {

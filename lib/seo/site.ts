@@ -6,8 +6,8 @@ export const DEFAULT_DESCRIPTION =
   "목표 날짜의 예상 부족분과 세 가지 해결책을 계산하고, 놓치기 쉬운 정책 혜택과 이번 달 실행 계획까지 확인하세요.";
 export const SOCIAL_IMAGE = {
   url: `${SITE_URL}/og.png`,
-  width: 1732,
-  height: 908,
+  width: 1200,
+  height: 630,
   alt: "INVETK Money GPS — 목표 진단에서 이번 달 실행까지",
 };
 

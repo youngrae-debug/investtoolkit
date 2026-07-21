@@ -4,7 +4,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GuideAd } from "@/components/ads/guide-ad";
 import { JsonLd } from "@/components/seo/json-ld";
-import { getGuide, guides } from "@/content/guides";
+import {
+  formatGuideDate,
+  getGuide,
+  GUIDE_MODIFIED_DATE,
+  GUIDE_PUBLISHED_DATE,
+  guides,
+} from "@/content/guides";
 import { ADSENSE_CONFIGURED } from "@/lib/ads/config";
 import { createPageMetadata } from "@/lib/seo/site";
 import { createGuideStructuredData } from "@/lib/seo/structured-data";
@@ -22,8 +28,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: guide.description,
     path: `/guides/${guide.slug}`,
     article: {
-      publishedTime: "2026-07-15",
-      modifiedTime: "2026-07-19",
+      publishedTime: GUIDE_PUBLISHED_DATE,
+      modifiedTime: GUIDE_MODIFIED_DATE,
     },
   });
 }
@@ -42,7 +48,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         <span className="section-kicker">{guide.eyebrow}</span>
         <h1>{guide.title}</h1>
         <p>{guide.intro}</p>
-        <small>INVETK 편집 · 최종 업데이트 2026년 7월 19일 · 약 8분 · <Link href="/methodology">계산 기준</Link></small>
+        <small>INVETK 편집 · 최종 업데이트 {formatGuideDate(GUIDE_MODIFIED_DATE)} · 약 8분 · <Link href="/methodology">계산 기준</Link></small>
       </header>
       <article className="article-body">
         <section className="example-box"><span>계산 예시</span><h2>{guide.exampleTitle}</h2><p>{guide.example}</p></section>

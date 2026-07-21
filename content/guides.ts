@@ -17,6 +17,14 @@ export interface Guide {
   preset: string;
 }
 
+export const GUIDE_PUBLISHED_DATE = "2026-07-15";
+export const GUIDE_MODIFIED_DATE = "2026-07-19";
+
+export function formatGuideDate(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  return `${year}년 ${month}월 ${day}일`;
+}
+
 export const guides: Guide[] = [
   {
     slug: "monthly-500k-to-100m",

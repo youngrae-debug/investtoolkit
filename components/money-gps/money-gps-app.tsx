@@ -91,6 +91,16 @@ function trackEvent(eventName: string, properties: Record<string, string | numbe
   });
 }
 
+async function copyText(text: string): Promise<boolean> {
+  if (!navigator.clipboard?.writeText) return false;
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function monthlyChangeCopy(amount: number): string {
   if (amount > 0) return `현재보다 매달 ${formatCurrency(amount)} 더`;
   if (amount < 0) return `현재보다 매달 ${formatCurrency(Math.abs(amount))} 덜어도 가능`;
@@ -588,21 +598,32 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
   async function copyResult() {
     if (!goalAnalysis) return;
     const copy = `${formatArrivalDate(goalAnalysis.targetDate)} 목표 기준으로, 현재 계획은 ${goalAnalysis.onTrack ? "목표 금액을 맞출 수 있어요" : "조정이 필요해요"}.${selectedActionPlan ? ` 선택한 실행 방식은 '${selectedActionPlan.title}'입니다.` : ""}\n\nINVETK Money GPS`;
-    await navigator.clipboard.writeText(copy);
-    setStatusMessage("개인 금액을 제외한 결과를 복사했어요.");
-    trackEvent("result_copied");
+    if (await copyText(copy)) {
+      setStatusMessage("개인 금액을 제외한 결과를 복사했어요.");
+      trackEvent("result_copied");
+      return;
+    }
+    setStatusMessage("복사하지 못했어요. 브라우저의 클립보드 권한을 확인해 주세요.");
   }
 
   async function shareResult() {
     if (!goalAnalysis) return;
     const text = `${formatArrivalDate(goalAnalysis.targetDate)} 목표 기준으로 ${goalAnalysis.onTrack ? "현재 계획을 유지하면 목표를 맞출 수 있어요" : "부족분을 채울 실행 계획을 만들었어요"}.${selectedActionPlan ? ` 선택한 방식은 '${selectedActionPlan.title}'입니다.` : ""}\n\nINVETK Money GPS`;
     if (navigator.share) {
-      await navigator.share({ title: "INVETK Money GPS", text, url: "https://invetk.com" });
-      trackEvent("web_share_used");
+      try {
+        await navigator.share({ title: "INVETK Money GPS", text, url: "https://invetk.com" });
+        setStatusMessage("공유를 완료했어요.");
+        trackEvent("web_share_used");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+    if (await copyText(text)) {
+      setStatusMessage("공유할 문장을 복사했어요.");
       return;
     }
-    await navigator.clipboard.writeText(text);
-    setStatusMessage("공유할 문장을 복사했어요.");
+    setStatusMessage("공유하지 못했어요. 브라우저의 공유 또는 클립보드 권한을 확인해 주세요.");
   }
 
   async function copyMonthlyActionPlan() {
@@ -627,9 +648,12 @@ export function MoneyGpsApp({ autoStart = false }: MoneyGpsAppProps) {
       `3. 이달 말 목표 전용 잔액 ${formatCurrency(firstMonthBalance)} 이상인지 확인하기`,
       `${formatArrivalDate(selectedActionPlan.adjustedTargetDate ?? goalAnalysis.targetDate)} 목표 · 연 ${annualRate}% 계산 가정`,
     ];
-    await navigator.clipboard.writeText(lines.join("\n"));
-    setStatusMessage("이번 달 행동 계획을 복사했어요.");
-    trackEvent("monthly_action_plan_copied", { action_type: selectedActionPlan.id });
+    if (await copyText(lines.join("\n"))) {
+      setStatusMessage("이번 달 행동 계획을 복사했어요.");
+      trackEvent("monthly_action_plan_copied", { action_type: selectedActionPlan.id });
+      return;
+    }
+    setStatusMessage("계획을 복사하지 못했어요. 브라우저의 클립보드 권한을 확인해 주세요.");
   }
 
   function createShareCard() {

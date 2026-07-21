@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { guides } from "@/content/guides";
+import { GUIDE_MODIFIED_DATE, guides } from "@/content/guides";
 import { absoluteUrl } from "@/lib/seo/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -18,7 +18,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...fixed,
     ...guides.map((guide) => ({
       url: absoluteUrl(`/guides/${guide.slug}`),
-      lastModified: new Date("2026-07-19"),
+      lastModified: new Date(GUIDE_MODIFIED_DATE),
       changeFrequency: "monthly" as const,
       priority: 0.7,
     })),

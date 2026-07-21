@@ -156,7 +156,7 @@ export function GoogleAnalytics() {
           <p>
             분석과 가이드 광고는 모두 선택 사항입니다. 광고를 허용해도 개인 맞춤 광고는 요청하지 않으며,
             목표 금액·자산·월급·지출·메모는 보내지 않습니다.
-            {" "}<Link href="/privacy">자세히 보기</Link>
+            {" "}<Link href="/privacy">개인정보 처리 방식 보기</Link>
           </p>
           <div className="analytics-consent__choices">
             <label>
@@ -198,7 +198,7 @@ export function GoogleAnalytics() {
         <p>
           허용하면 방문한 페이지와 이용 흐름만 Google Analytics로 확인합니다.
           목표 금액·자산·월급·지출·메모는 보내지 않습니다.
-          {" "}<Link href="/privacy">자세히 보기</Link>
+          {" "}<Link href="/privacy">개인정보 처리 방식 보기</Link>
         </p>
       </div>
       <div className="analytics-consent__actions">

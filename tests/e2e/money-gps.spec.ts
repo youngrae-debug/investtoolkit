@@ -275,7 +275,14 @@ test("finds a policy benefit and calculates only a confirmed support amount", as
 test("opens policy benefits from its own menu and removes the duplicate comparison menu", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("main[data-hydrated='true']")).toBeVisible();
-  await page.getByRole("button", { name: "메뉴 열기" }).click();
+  const menuButton = page.getByRole("button", { name: "메뉴 열기" });
+  await menuButton.click();
+  await expect(page.getByRole("link", { name: "Money GPS", exact: true })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(menuButton).toBeFocused();
+  await expect(page.getByRole("link", { name: "정책 혜택", exact: true })).toBeHidden();
+
+  await menuButton.click();
   await expect(page.getByRole("link", { name: "정책 혜택", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "선택 비교" })).toHaveCount(0);
   await page.getByRole("link", { name: "정책 혜택", exact: true }).click();
@@ -283,6 +290,20 @@ test("opens policy benefits from its own menu and removes the duplicate comparis
   await expect(page.getByRole("heading", { name: /놓치고 있던 정책 혜택까지/ })).toBeVisible();
   await expect(page.getByRole("group", { name: "간단한 조건 확인" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "함께 심사되는 가구원 수" })).toBeVisible();
+});
+
+test("shows a recoverable message when clipboard access is unavailable", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: () => Promise.reject(new Error("clipboard denied")) },
+    });
+  });
+  await createResult(page);
+
+  await page.getByText("공유와 데이터 관리").click();
+  await page.getByRole("button", { name: "결과 문장 복사" }).click();
+  await expect(page.locator(".toast")).toContainText("클립보드 권한을 확인해 주세요");
 });
 
 test("keeps the backup control readable on the dark calculator preview", async ({ page }) => {
