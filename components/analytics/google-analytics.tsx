@@ -44,7 +44,7 @@ function setGoogleAnalyticsDisabled(disabled: boolean) {
   (window as unknown as Record<string, unknown>)[`ga-disable-${GOOGLE_ANALYTICS_ID}`] = disabled;
 }
 
-function initializeGoogleTag() {
+function initializeGoogleTagQueue() {
   window.dataLayer ??= [];
   window.gtag ??= function gtag() {
     // Google의 공식 gtag 스니펫과 같은 arguments 큐 형식을 사용합니다.
@@ -54,11 +54,15 @@ function initializeGoogleTag() {
 
   window.gtag("js", new Date());
   window.gtag("config", GOOGLE_ANALYTICS_ID, { send_page_view: false });
+}
 
+function loadGoogleTagScript() {
   if (!document.getElementById(GOOGLE_TAG_SCRIPT_ID)) {
     const script = document.createElement("script");
     script.id = GOOGLE_TAG_SCRIPT_ID;
     script.async = true;
+    script.crossOrigin = "anonymous";
+    script.referrerPolicy = "strict-origin-when-cross-origin";
     script.src = `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`;
     document.head.appendChild(script);
   }
@@ -105,9 +109,22 @@ export function GoogleAnalytics() {
 
     setGoogleAnalyticsDisabled(false);
     if (!initializedRef.current) {
-      initializeGoogleTag();
+      initializeGoogleTagQueue();
       initializedRef.current = true;
     }
+
+    const loadScript = () => loadGoogleTagScript();
+    const idleApi = window as unknown as {
+      requestIdleCallback?: Window["requestIdleCallback"];
+      cancelIdleCallback?: Window["cancelIdleCallback"];
+    };
+    if (idleApi.requestIdleCallback && idleApi.cancelIdleCallback) {
+      const idleId = idleApi.requestIdleCallback(loadScript, { timeout: 1_500 });
+      return () => idleApi.cancelIdleCallback?.(idleId);
+    }
+
+    const timeoutId = window.setTimeout(loadScript, 1_000);
+    return () => window.clearTimeout(timeoutId);
   }, [consent, hydrated]);
 
   useEffect(() => {

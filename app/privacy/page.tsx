@@ -8,9 +8,9 @@ export const metadata = createPageMetadata({
 });
 
 export default function PrivacyPage() {
-  return <main id="main-content" className="content-page article-page legal-page"><header className="article-header"><span className="section-kicker">개인정보</span><h1>금융 입력값은 브라우저 안에서만 처리합니다</h1><p>기본 계산은 회원가입이나 서버 저장 없이 동작합니다.</p><small>시행일 2026년 7월 19일</small></header><article className="article-body">
-    <section><h2>1. 기본 계산</h2><p>목표 금액, 지금까지 모은 돈, 월급, 지출, 대출 상환액, 매달 모을 돈은 계산을 위해 현재 브라우저 메모리에서만 사용합니다. INVETK 서버로 보내거나 URL에 넣지 않습니다.</p></section>
-    <section><h2>2. 브라우저 저장</h2><p>사용자가 ‘계획 저장’을 직접 선택한 경우에만 계획 이름, 계산 입력, 수익률 가정, 예상 도착일, 이번 달 실제 저축액과 선택한 변화 이유를 현재 브라우저의 localStorage에 저장합니다. 다른 기기나 브라우저에는 자동으로 동기화되지 않습니다.</p></section>
+  return <main id="main-content" className="content-page article-page legal-page"><header className="article-header"><span className="section-kicker">개인정보</span><h1>금융 입력값은 브라우저 안에서만 처리합니다</h1><p>기본 계산은 회원가입이나 서버 저장 없이 동작합니다.</p><small>시행일 2026년 7월 21일</small></header><article className="article-body">
+    <section><h2>1. 기본 계산</h2><p>목표 금액, 지금까지 모은 돈, 월급, 지출, 대출 상환액, 매달 모을 돈은 계산을 위해 현재 브라우저 메모리에서만 사용합니다. 이번 달 돈 점검에서 사용자가 직접 저장한 월 수입·총지출과 실제 저축액도 현재 브라우저의 localStorage에만 보관합니다. INVETK 서버로 보내거나 URL에 넣지 않습니다.</p></section>
+    <section><h2>2. 브라우저 저장</h2><p>사용자가 ‘계획 저장’을 직접 선택한 경우에만 계획 이름, 계산 입력, 수익률 가정, 예상 도착일, 이번 달 실제 저축액, 선택적으로 입력한 월 수입·총지출과 변화 이유를 현재 브라우저의 localStorage에 저장합니다. 다른 기기나 브라우저에는 자동으로 동기화되지 않습니다.</p></section>
     <section><h2>3. 저장 이유와 삭제</h2><p>저장 목적은 다음 방문 때 계획을 이어보고 이전 목표일과 비교하기 위함입니다. 결과 화면의 ‘이 브라우저의 저장 데이터 삭제’를 누르거나 브라우저의 사이트 데이터 삭제 기능을 사용하면 제거됩니다.</p></section>
     <section><h2>4. 데이터 백업</h2><p>사용자는 저장된 계획을 파일로 백업하고 다시 불러올 수 있습니다. 백업 파일은 사용자가 직접 보관하며, 파일 공유나 보관 과정은 INVETK가 통제하지 않습니다.</p></section>
     <section><h2>5. 선택적 이용 분석</h2><p>사용자가 ‘이용 분석 허용’을 선택한 경우에만 Google Analytics를 불러옵니다. 방문한 페이지 경로, 페이지 제목, 접속 시각, 기기·브라우저의 일반 정보와 유입 경로를 서비스 개선 목적으로 확인할 수 있습니다. 월급, 자산, 목표 금액, 지출, 적립액, 메모와 전체 계산 결과는 분석 속성에 포함하지 않으며 URL에도 넣지 않습니다.</p><p>거부하면 Google Analytics 태그를 불러오지 않습니다. 선택은 현재 브라우저의 localStorage에 저장됩니다.</p></section>

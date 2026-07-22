@@ -11,6 +11,13 @@ function futureTargetMonth(years = 5): string {
   return `${now.getFullYear() + years}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function relativeMonth(offset: number): string {
+  const date = new Date();
+  date.setDate(1);
+  date.setMonth(date.getMonth() + offset);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
 async function reachMonthlyStep(
   page: Page,
   { goal = "10000", current = "3000" }: { goal?: string; current?: string } = {},
@@ -45,7 +52,7 @@ test("creates three goal-date solutions and restores a saved plan", async ({ pag
   await page.goto("/");
   await expect(page.locator("main[data-hydrated='true']")).toBeVisible();
   await expect(page.getByRole("heading", { name: "5년 안에 1억, 지금 계획으로 가능할까요?" })).toBeVisible();
-  await page.getByRole("button", { name: "내 해결안 만들기" }).click();
+  await page.getByRole("button", { name: "60초 안에 내 해결안 보기" }).click();
   await page.getByRole("textbox", { name: "목표 금액", exact: true }).fill("10000");
   await expect(page.locator("#goal-amount-readable")).toHaveText("= 1억 원");
   await page.locator("#goal-date").fill(targetMonth);
@@ -57,6 +64,7 @@ test("creates three goal-date solutions and restores a saved plan", async ({ pag
 
   await expect(page.getByRole("heading", { name: "1,000만 원 부족" })).toBeVisible();
   await expect(page.locator(".completion-rate")).toContainText("예상 목표 충족률90%");
+  await expect(page.getByRole("link", { name: "해결책 3개 비교하기" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "부족분을 해결하는 세 가지 방법" })).toBeVisible();
   await expect(page.getByRole("table", { name: "세 가지 실행안 핵심 비교" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "매달 나눠 채우기" })).toBeVisible();
@@ -70,23 +78,28 @@ test("creates three goal-date solutions and restores a saved plan", async ({ pag
   const balancedPlan = page.getByRole("article", { name: /월 적립과 시작 자금 나눠 채우기/ });
   await expect(balancedPlan).toContainText("109만 원");
   await expect(balancedPlan).toContainText("500만 원");
-  await balancedPlan.getByRole("button", { name: "이 방법으로 계획 보기" }).click();
+  await balancedPlan.getByRole("button", { name: "이 방법 선택하기" }).click();
   await page.getByRole("link", { name: "이번 달 행동 보기" }).click();
   await expect(page.getByRole("heading", { name: "이번 달은 이렇게 시작하세요" })).toBeInViewport();
   await expect(page.locator("#monthly-action")).toContainText("월 자동이체를 109만 원으로 설정하기");
   await expect(page.locator("#monthly-action")).toContainText("시작 자금 500만 원 보태기");
   await page.getByRole("checkbox", { name: "오늘 행동 완료 표시" }).check();
   await expect(page.locator("#monthly-action")).toContainText("1/3 완료");
+  await expect(page.locator("#save-plan")).toContainText("다음 달 1분 점검");
+  await expect(page.locator("#save-plan")).toContainText("최근 3개월 흐름 비교");
+  await page.locator("#plan-name").fill("5년 안에 1억을 만들기 위한 아주 긴 개인 목표 계획 이름");
 
   await page.getByRole("button", { name: "계획 저장" }).click();
   await expect(page.locator(".toast")).toContainText("계획을 이 브라우저에 저장했어요");
   await expect(page.getByRole("button", { name: "저장됨" })).toBeDisabled();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "나의 목표 계획의 경로를 이어볼까요?" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "이번 달 업데이트" })).toBeVisible();
-  await page.getByRole("button", { name: "이번 달 업데이트" }).click();
-  await expect(page.getByRole("heading", { name: "이번 달 얼마 모았나요?" })).toBeFocused();
-  await expect(page.getByRole("heading", { name: "이번 달 얼마 모았나요?" })).toBeInViewport();
+  await expect(page.getByRole("heading", { name: "저장한 계획을, 이번 달에도 이어가볼까요?" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "저장된 계획 요약" })).toContainText("5년 안에 1억을 만들기 위한 아주 긴 개인 목표 계획 이름");
+  await expect(page.getByRole("button", { name: "이번 달 돈 점검" })).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+  await page.getByRole("button", { name: "이번 달 돈 점검" }).click();
+  await expect(page.getByRole("heading", { name: "이번 달 돈 점검" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "이번 달 돈 점검" })).toBeInViewport();
   await expect(page.getByRole("textbox", { name: "이번 달 실제로 모은 돈", exact: true })).toBeVisible();
   await page.goto("/");
   await page.getByRole("button", { name: "계획 다시 보기" }).click();
@@ -100,6 +113,29 @@ test("creates three goal-date solutions and restores a saved plan", async ({ pag
   await expect(page.getByRole("heading", { name: "목표 날짜 조정하기" })).toBeVisible();
   await expect(page.getByRole("article", { name: /매달 가능한 만큼 채우기/ })).toContainText("목표일에 400만 원 부족");
   await expect(page.getByRole("article", { name: /가능 범위 함께 쓰기/ })).toContainText("목표 금액 도달");
+});
+
+test("starts the calculator directly from the example result", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("main[data-hydrated='true']")).toBeVisible();
+
+  await page.getByRole("link", { name: "결과 예시 보기" }).click();
+  await expect(page.getByRole("region", { name: "계산 예시" })).toBeInViewport();
+  await page.getByRole("button", { name: "이 예시를 내 숫자로 바꾸기" }).click();
+
+  await expect(page.getByRole("heading", { name: "언제까지 얼마를 만들고 싶나요?" })).toBeFocused();
+});
+
+test("rejects an oversized local backup before reading it", async ({ page }) => {
+  await page.goto("/money-gps", { waitUntil: "networkidle" });
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "oversized.json",
+    mimeType: "application/json",
+    buffer: Buffer.alloc(2_000_001, 32),
+  });
+
+  await expect(page.getByRole("status")).toContainText("백업 파일은 2MB 이하만 불러올 수 있어요.");
 });
 
 test("requires saving plan changes before a monthly update", async ({ page }) => {
@@ -148,16 +184,76 @@ test("updates a saved limited plan and records the shortage change", async ({ pa
   await page.getByRole("button", { name: "기록하기" }).click();
   await expect(page.locator(".toast")).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
-  await page.getByRole("textbox", { name: "이번 달 실제로 모은 돈", exact: true }).fill("210");
+  await page.getByRole("button", { name: "수입·지출로 계산" }).click();
+  await page.getByRole("textbox", { name: "이번 달 들어온 돈", exact: true }).fill("350");
+  await page.getByRole("textbox", { name: "이번 달 쓴 돈", exact: true }).fill("140");
+  await expect(page.locator(".monthly-cashflow-result")).toContainText("이번 달 남은 돈210만 원");
   await page.getByRole("button", { name: "수입이 달라졌어요" }).click();
   await page.getByRole("button", { name: "이번 달 기록 저장" }).click();
 
   await expect(page.locator(".toast")).toContainText("계획보다 100만 원 더 모았어요");
   await expect(page.locator(".toast")).toContainText("예상 부족분이 100만 원 줄었어요");
-  await expect(page.locator(".checkin-list")).toContainText("계획 110만 원 · 실제 210만 원");
+  await expect(page.locator(".checkin-list")).toContainText("수입 350만 원 · 지출 140만 원");
+  await expect(page.locator(".checkin-list")).toContainText("남은 210만 원");
   await expect(page.locator(".checkin-list")).toContainText("수입이 달라졌어요");
-  await expect(page.getByRole("heading", { name: "이번 달 얼마 모았나요?" })).toBeFocused();
-  await expect(page.getByRole("heading", { name: "이번 달 얼마 모았나요?" })).toBeInViewport();
+  await expect(page.getByRole("heading", { name: "최근 3개월 저축 흐름" })).toBeVisible();
+  await expect(page.locator(".monthly-savings-trend")).toContainText("1개월 기록");
+  await expect(page.locator(".monthly-savings-trend")).toContainText("한 달 더 기록하면");
+  await expect(page.getByRole("heading", { name: "이번 달 돈 점검" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "이번 달 돈 점검" })).toBeInViewport();
+  const storedCheckin = await page.evaluate(() => {
+    const raw = window.localStorage.getItem("invetk-money-gps");
+    return raw ? JSON.parse(raw).checkins[0] : null;
+  });
+  expect(storedCheckin.monthlyIncome).toBe(3_500_000);
+  expect(storedCheckin.monthlyExpenses).toBe(1_400_000);
+});
+
+test("summarizes the latest three monthly savings records", async ({ page }) => {
+  await createResult(page);
+  await page.getByRole("article", { name: /매달 나눠 채우기/ }).getByRole("button").click();
+  await page.getByRole("button", { name: "계획 저장" }).click();
+
+  const periods = [relativeMonth(-2), relativeMonth(-1), relativeMonth(0)];
+  await page.evaluate(([firstPeriod, secondPeriod, thirdPeriod]) => {
+    const raw = window.localStorage.getItem("invetk-money-gps");
+    if (!raw) return;
+    const plan = JSON.parse(raw);
+    const records = [
+      { period: firstPeriod, actualContribution: 800_000 },
+      { period: secondPeriod, actualContribution: 1_200_000 },
+      { period: thirdPeriod, actualContribution: 900_000 },
+    ];
+    plan.checkins = records.map((record) => ({
+      date: `${record.period}-15T00:00:00.000Z`,
+      period: record.period,
+      plannedContribution: 1_000_000,
+      actualContribution: record.actualContribution,
+      monthlyIncome: null,
+      monthlyExpenses: null,
+      reason: record.period === thirdPeriod ? "living-expenses" : null,
+      currentAmount: plan.currentAmount,
+      projectedAtTarget: plan.projectedAtTarget,
+      shortage: plan.shortage,
+      shortageDifference: 0,
+      completedActionSteps: [],
+      memo: "",
+    }));
+    window.localStorage.setItem("invetk-money-gps", JSON.stringify(plan));
+  }, periods);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "계획 다시 보기" }).click();
+  const trend = page.locator(".monthly-savings-trend");
+  await expect(page.getByRole("heading", { name: "최근 3개월 저축 흐름" })).toBeVisible();
+  await expect(trend).toContainText("3개월 기록");
+  await expect(trend).toContainText("계획보다 10만 원 덜 모았어요");
+  await expect(trend).toContainText("계획 300만 원 · 실제 290만 원");
+  await expect(trend.getByRole("img")).toHaveAttribute("aria-label", /계획 100만 원, 실제 80만 원.*계획 100만 원, 실제 120만 원/);
+  await expect(trend).toContainText("지난달보다 30만 원 덜 모았어요");
+  await expect(trend).toContainText("기록한 이유: 생활비가 늘었어요");
+  await expect(trend).toContainText("다음 달에 계획보다 10만 원 더 모으면");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
 });
 
 test("exports a saved plan and restores the backup", async ({ page }, testInfo) => {

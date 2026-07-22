@@ -32,7 +32,14 @@ describe("security headers", () => {
     expect(securityHeaders["Strict-Transport-Security"]).toBe("max-age=31536000");
     expect(securityHeaders["X-Content-Type-Options"]).toBe("nosniff");
     expect(securityHeaders["X-Frame-Options"]).toBe("DENY");
+    expect(securityHeaders["X-DNS-Prefetch-Control"]).toBe("off");
+    expect(securityHeaders["X-Permitted-Cross-Domain-Policies"]).toBe("none");
+    expect(securityHeaders["Cross-Origin-Opener-Policy"]).toBe("same-origin-allow-popups");
+    expect(securityHeaders["Cross-Origin-Resource-Policy"]).toBe("same-origin");
+    expect(securityHeaders["Origin-Agent-Cluster"]).toBe("?1");
     expect(securityHeaders["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
+    expect(securityHeaders["Permissions-Policy"]).toContain("camera=()");
+    expect(securityHeaders["Permissions-Policy"]).toContain("usb=()");
   });
 
   it("allows AdSense child resources only in the explicit ad policy", () => {
@@ -40,6 +47,9 @@ describe("security headers", () => {
     const adPolicy = createContentSecurityPolicy({ allowAdSense: true });
 
     expect(corePolicy).toContain("frame-ancestors 'none'");
+    expect(corePolicy).toContain("base-uri 'none'");
+    expect(corePolicy).toContain("script-src-attr 'none'");
+    expect(corePolicy).toContain("frame-src 'none'");
     expect(corePolicy).toContain("https://*.google-analytics.com");
     expect(corePolicy).not.toContain("frame-src https:");
     expect(adPolicy).toContain("frame-src https:");

@@ -1,28 +1,51 @@
-import { z } from "zod";
+import { z } from "zod/mini";
+import {
+  MAX_BACKUP_FILE_BYTES,
+  MAX_CHECKINS,
+  SCHEMA_VERSION,
+  STORAGE_KEY,
+} from "./version";
 
-export const STORAGE_KEY = "invetk-money-gps";
-export const SCHEMA_VERSION = 6;
+export {
+  MAX_BACKUP_FILE_BYTES,
+  MAX_CHECKINS,
+  SCHEMA_VERSION,
+  STORAGE_KEY,
+} from "./version";
 
 const goalActionPlanIdSchema = z.enum(["monthly", "balanced", "timeline"]);
 const versionFourGoalActionPlanIdSchema = z.enum(["monthly", "upfront", "timeline"]);
 const versionThreeGoalActionPlanIdSchema = z.enum(["monthly", "upfront", "balanced"]);
+const monthValueSchema = z.string().check(z.regex(/^\d{4}-\d{2}$/));
+const planNameSchema = z.string().check(z.minLength(1), z.maxLength(60));
+const memoSchema = z.string().check(z.maxLength(300));
+const nonnegativeNumberSchema = z.number().check(z.nonnegative());
+const actionStepSchema = z.int().check(z.minimum(0), z.maximum(2));
+const completedActionStepsSchema = z.array(actionStepSchema).check(z.maxLength(3));
+const annualRateSchema = z.number().check(z.minimum(-20), z.maximum(30));
+const identifierSchema = z.string().check(z.minLength(1), z.maxLength(100));
+const dateStringSchema = z.string().check(z.minLength(1), z.maxLength(40));
+
+function checkinList<T>(schema: z.ZodMiniType<T>) {
+  return z.array(schema).check(z.maxLength(MAX_CHECKINS));
+}
 
 const legacyCheckinSchema = z.object({
-  date: z.string(),
-  currentAmount: z.number().nonnegative(),
-  arrivalDate: z.string().nullable(),
-  differenceMonths: z.number().nullable(),
-  memo: z.string().max(300),
+  date: dateStringSchema,
+  currentAmount: nonnegativeNumberSchema,
+  arrivalDate: z.nullable(dateStringSchema),
+  differenceMonths: z.nullable(z.number()),
+  memo: memoSchema,
 });
 
 const versionFiveCheckinSchema = z.object({
-  date: z.string(),
-  currentAmount: z.number().nonnegative(),
-  projectedAtTarget: z.number().nullable(),
-  shortage: z.number().nonnegative().nullable(),
-  shortageDifference: z.number().nullable(),
-  completedActionSteps: z.array(z.number().int().min(0).max(2)),
-  memo: z.string().max(300),
+  date: dateStringSchema,
+  currentAmount: nonnegativeNumberSchema,
+  projectedAtTarget: z.nullable(z.number()),
+  shortage: z.nullable(nonnegativeNumberSchema),
+  shortageDifference: z.nullable(z.number()),
+  completedActionSteps: completedActionStepsSchema,
+  memo: memoSchema,
 });
 
 const monthlyCheckinReasonSchema = z.enum([
@@ -32,128 +55,138 @@ const monthlyCheckinReasonSchema = z.enum([
   "saved-more",
 ]);
 
-const checkinSchema = versionFiveCheckinSchema.extend({
-  period: z.string().regex(/^\d{4}-\d{2}$/),
-  plannedContribution: z.number().nonnegative().nullable(),
-  actualContribution: z.number().nonnegative().nullable(),
-  reason: monthlyCheckinReasonSchema.nullable(),
+const versionSixCheckinSchema = z.extend(versionFiveCheckinSchema, {
+  period: monthValueSchema,
+  plannedContribution: z.nullable(nonnegativeNumberSchema),
+  actualContribution: z.nullable(nonnegativeNumberSchema),
+  reason: z.nullable(monthlyCheckinReasonSchema),
+});
+
+const checkinSchema = z.extend(versionSixCheckinSchema, {
+  monthlyIncome: z.nullable(nonnegativeNumberSchema),
+  monthlyExpenses: z.nullable(nonnegativeNumberSchema),
 });
 
 const actionPlanSnapshotSchema = z.object({
   id: goalActionPlanIdSchema,
-  title: z.string().min(1).max(60),
+  title: planNameSchema,
   monthlyContribution: z.number(),
-  upfrontAmount: z.number().nonnegative(),
-  adjustedTargetDate: z.string().regex(/^\d{4}-\d{2}$/).nullable(),
+  upfrontAmount: nonnegativeNumberSchema,
+  adjustedTargetDate: z.nullable(monthValueSchema),
 });
 
 const versionFourActionPlanSnapshotSchema = z.object({
   id: versionFourGoalActionPlanIdSchema,
-  title: z.string().min(1).max(60),
+  title: planNameSchema,
   monthlyContribution: z.number(),
-  upfrontAmount: z.number().nonnegative(),
-  adjustedTargetDate: z.string().regex(/^\d{4}-\d{2}$/).nullable(),
+  upfrontAmount: nonnegativeNumberSchema,
+  adjustedTargetDate: z.nullable(monthValueSchema),
 });
 
 const versionThreeActionPlanSnapshotSchema = z.object({
   id: versionThreeGoalActionPlanIdSchema,
-  title: z.string().min(1).max(60),
+  title: planNameSchema,
   monthlyContribution: z.number(),
-  upfrontAmount: z.number().nonnegative(),
+  upfrontAmount: nonnegativeNumberSchema,
 });
 
 const feasibilityLimitsSchema = z.object({
-  maxMonthlyIncrease: z.number().nonnegative(),
-  maxUpfrontAmount: z.number().nonnegative(),
+  maxMonthlyIncrease: nonnegativeNumberSchema,
+  maxUpfrontAmount: nonnegativeNumberSchema,
 });
 
 const legacySavedPlanSchema = z.object({
   schemaVersion: z.literal(1),
-  id: z.string(),
-  name: z.string().min(1).max(60),
-  savedAt: z.string(),
-  goalAmount: z.number().positive(),
-  currentAmount: z.number().nonnegative(),
+  id: identifierSchema,
+  name: planNameSchema,
+  savedAt: dateStringSchema,
+  goalAmount: z.number().check(z.positive()),
+  currentAmount: nonnegativeNumberSchema,
   monthlyContribution: z.number(),
-  annualRate: z.number().min(-20).max(30),
-  arrivalDate: z.string().nullable(),
-  checkins: z.array(legacyCheckinSchema),
+  annualRate: annualRateSchema,
+  arrivalDate: z.nullable(dateStringSchema),
+  checkins: checkinList(legacyCheckinSchema),
 });
 
 const versionTwoSavedPlanSchema = z.object({
   schemaVersion: z.literal(2),
-  id: z.string(),
-  name: z.string().min(1).max(60),
-  savedAt: z.string(),
-  goalAmount: z.number().positive(),
-  currentAmount: z.number().nonnegative(),
+  id: identifierSchema,
+  name: planNameSchema,
+  savedAt: dateStringSchema,
+  goalAmount: z.number().check(z.positive()),
+  currentAmount: nonnegativeNumberSchema,
   monthlyContribution: z.number(),
-  annualRate: z.number().min(-20).max(30),
-  targetDate: z.string().regex(/^\d{4}-\d{2}$/),
-  arrivalDate: z.string().nullable(),
-  checkins: z.array(legacyCheckinSchema),
+  annualRate: annualRateSchema,
+  targetDate: monthValueSchema,
+  arrivalDate: z.nullable(dateStringSchema),
+  checkins: checkinList(legacyCheckinSchema),
 });
 
 const versionThreeSavedPlanSchema = z.object({
   schemaVersion: z.literal(3),
-  id: z.string(),
-  name: z.string().min(1).max(60),
-  savedAt: z.string(),
-  goalAmount: z.number().positive(),
-  currentAmount: z.number().nonnegative(),
+  id: identifierSchema,
+  name: planNameSchema,
+  savedAt: dateStringSchema,
+  goalAmount: z.number().check(z.positive()),
+  currentAmount: nonnegativeNumberSchema,
   monthlyContribution: z.number(),
-  annualRate: z.number().min(-20).max(30),
-  targetDate: z.string().regex(/^\d{4}-\d{2}$/),
-  arrivalDate: z.string().nullable(),
-  projectedAtTarget: z.number().nullable(),
-  shortage: z.number().nonnegative().nullable(),
-  actionPlan: versionThreeActionPlanSnapshotSchema.nullable(),
-  completedActionSteps: z.array(z.number().int().min(0).max(2)),
-  feasibilityLimits: feasibilityLimitsSchema.nullable(),
-  checkins: z.array(versionFiveCheckinSchema),
+  annualRate: annualRateSchema,
+  targetDate: monthValueSchema,
+  arrivalDate: z.nullable(dateStringSchema),
+  projectedAtTarget: z.nullable(z.number()),
+  shortage: z.nullable(nonnegativeNumberSchema),
+  actionPlan: z.nullable(versionThreeActionPlanSnapshotSchema),
+  completedActionSteps: completedActionStepsSchema,
+  feasibilityLimits: z.nullable(feasibilityLimitsSchema),
+  checkins: checkinList(versionFiveCheckinSchema),
 });
 
 const versionFourSavedPlanSchema = z.object({
   schemaVersion: z.literal(4),
-  id: z.string(),
-  name: z.string().min(1).max(60),
-  savedAt: z.string(),
-  goalAmount: z.number().positive(),
-  currentAmount: z.number().nonnegative(),
+  id: identifierSchema,
+  name: planNameSchema,
+  savedAt: dateStringSchema,
+  goalAmount: z.number().check(z.positive()),
+  currentAmount: nonnegativeNumberSchema,
   monthlyContribution: z.number(),
-  annualRate: z.number().min(-20).max(30),
-  targetDate: z.string().regex(/^\d{4}-\d{2}$/),
-  arrivalDate: z.string().nullable(),
-  projectedAtTarget: z.number().nullable(),
-  shortage: z.number().nonnegative().nullable(),
-  actionPlan: versionFourActionPlanSnapshotSchema.nullable(),
-  completedActionSteps: z.array(z.number().int().min(0).max(2)),
-  feasibilityLimits: feasibilityLimitsSchema.nullable(),
-  checkins: z.array(versionFiveCheckinSchema),
+  annualRate: annualRateSchema,
+  targetDate: monthValueSchema,
+  arrivalDate: z.nullable(dateStringSchema),
+  projectedAtTarget: z.nullable(z.number()),
+  shortage: z.nullable(nonnegativeNumberSchema),
+  actionPlan: z.nullable(versionFourActionPlanSnapshotSchema),
+  completedActionSteps: completedActionStepsSchema,
+  feasibilityLimits: z.nullable(feasibilityLimitsSchema),
+  checkins: checkinList(versionFiveCheckinSchema),
 });
 
 const versionFiveSavedPlanSchema = z.object({
   schemaVersion: z.literal(5),
-  id: z.string(),
-  name: z.string().min(1).max(60),
-  savedAt: z.string(),
-  goalAmount: z.number().positive(),
-  currentAmount: z.number().nonnegative(),
+  id: identifierSchema,
+  name: planNameSchema,
+  savedAt: dateStringSchema,
+  goalAmount: z.number().check(z.positive()),
+  currentAmount: nonnegativeNumberSchema,
   monthlyContribution: z.number(),
-  annualRate: z.number().min(-20).max(30),
-  targetDate: z.string().regex(/^\d{4}-\d{2}$/),
-  arrivalDate: z.string().nullable(),
-  projectedAtTarget: z.number().nullable(),
-  shortage: z.number().nonnegative().nullable(),
-  actionPlan: actionPlanSnapshotSchema.nullable(),
-  completedActionSteps: z.array(z.number().int().min(0).max(2)),
-  feasibilityLimits: feasibilityLimitsSchema.nullable(),
-  checkins: z.array(versionFiveCheckinSchema),
+  annualRate: annualRateSchema,
+  targetDate: monthValueSchema,
+  arrivalDate: z.nullable(dateStringSchema),
+  projectedAtTarget: z.nullable(z.number()),
+  shortage: z.nullable(nonnegativeNumberSchema),
+  actionPlan: z.nullable(actionPlanSnapshotSchema),
+  completedActionSteps: completedActionStepsSchema,
+  feasibilityLimits: z.nullable(feasibilityLimitsSchema),
+  checkins: checkinList(versionFiveCheckinSchema),
 });
 
-const savedPlanSchema = versionFiveSavedPlanSchema.extend({
+const versionSixSavedPlanSchema = z.extend(versionFiveSavedPlanSchema, {
+  schemaVersion: z.literal(6),
+  checkins: checkinList(versionSixCheckinSchema),
+});
+
+const savedPlanSchema = z.extend(versionFiveSavedPlanSchema, {
   schemaVersion: z.literal(SCHEMA_VERSION),
-  checkins: z.array(checkinSchema),
+  checkins: checkinList(checkinSchema),
 });
 
 export type SavedPlan = z.infer<typeof savedPlanSchema>;
@@ -176,6 +209,8 @@ function migrateLegacyCheckins(checkins: z.infer<typeof legacyCheckinSchema>[]) 
     plannedContribution: null,
     actualContribution: null,
     reason: null,
+    monthlyIncome: null,
+    monthlyExpenses: null,
   }));
 }
 
@@ -186,6 +221,16 @@ function migrateVersionFiveCheckins(checkins: z.infer<typeof versionFiveCheckinS
     plannedContribution: null,
     actualContribution: null,
     reason: null,
+    monthlyIncome: null,
+    monthlyExpenses: null,
+  }));
+}
+
+function migrateVersionSixCheckins(checkins: z.infer<typeof versionSixCheckinSchema>[]) {
+  return checkins.map((checkin) => ({
+    ...checkin,
+    monthlyIncome: null,
+    monthlyExpenses: null,
   }));
 }
 
@@ -239,9 +284,20 @@ function upgradeVersionFive(plan: z.infer<typeof versionFiveSavedPlanSchema>): S
   });
 }
 
+function upgradeVersionSix(plan: z.infer<typeof versionSixSavedPlanSchema>): SavedPlan {
+  return savedPlanSchema.parse({
+    ...plan,
+    schemaVersion: SCHEMA_VERSION,
+    checkins: migrateVersionSixCheckins(plan.checkins),
+  });
+}
+
 function migrateSavedPlan(value: unknown): SavedPlan {
   const current = savedPlanSchema.safeParse(value);
   if (current.success) return current.data;
+
+  const versionSix = versionSixSavedPlanSchema.safeParse(value);
+  if (versionSix.success) return upgradeVersionSix(versionSix.data);
 
   const versionFive = versionFiveSavedPlanSchema.safeParse(value);
   if (versionFive.success) return upgradeVersionFive(versionFive.data);
@@ -276,6 +332,7 @@ export function loadSavedPlan(): SavedPlan | null {
   if (typeof window === "undefined") return null;
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
+  if (raw.length > MAX_BACKUP_FILE_BYTES) return null;
   try {
     const parsed = JSON.parse(raw) as { schemaVersion?: number };
     const plan = migrateSavedPlan(parsed);
@@ -303,5 +360,8 @@ export function exportBackup(plan: SavedPlan): string {
 }
 
 export function importBackup(raw: string): SavedPlan {
+  if (raw.length > MAX_BACKUP_FILE_BYTES) {
+    throw new Error("Backup file is too large");
+  }
   return migrateSavedPlan(JSON.parse(raw));
 }

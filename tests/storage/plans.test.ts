@@ -1,7 +1,54 @@
 import { describe, expect, it } from "vitest";
-import { importBackup, SCHEMA_VERSION } from "@/lib/storage/plans";
+import {
+  importBackup,
+  MAX_BACKUP_FILE_BYTES,
+  MAX_CHECKINS,
+  SCHEMA_VERSION,
+} from "@/lib/storage/plans";
 
 describe("saved plan migration", () => {
+  it("rejects oversized backup text before parsing", () => {
+    expect(() => importBackup(" ".repeat(MAX_BACKUP_FILE_BYTES + 1))).toThrow("too large");
+  });
+
+  it("rejects backup histories beyond the supported simulation horizon", () => {
+    const checkin = {
+      date: "2026-07-20T00:00:00.000Z",
+      period: "2026-07",
+      plannedContribution: 1_000_000,
+      actualContribution: 1_000_000,
+      reason: null,
+      monthlyIncome: null,
+      monthlyExpenses: null,
+      currentAmount: 31_000_000,
+      projectedAtTarget: 91_000_000,
+      shortage: 9_000_000,
+      shortageDifference: 0,
+      completedActionSteps: [],
+      memo: "",
+    };
+    const raw = JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      id: "too-many-checkins",
+      name: "기록 제한 확인",
+      savedAt: "2026-07-20T00:00:00.000Z",
+      goalAmount: 100_000_000,
+      currentAmount: 31_000_000,
+      monthlyContribution: 1_000_000,
+      annualRate: 0,
+      targetDate: "2031-07",
+      arrivalDate: "2032-04-01T00:00:00.000Z",
+      projectedAtTarget: 91_000_000,
+      shortage: 9_000_000,
+      actionPlan: null,
+      completedActionSteps: [],
+      feasibilityLimits: null,
+      checkins: Array.from({ length: MAX_CHECKINS + 1 }, () => checkin),
+    });
+
+    expect(() => importBackup(raw)).toThrow();
+  });
+
   it("moves a version 1 plan to the goal-date schema", () => {
     const plan = importBackup(JSON.stringify({
       schemaVersion: 1,
@@ -162,6 +209,48 @@ describe("saved plan migration", () => {
       plannedContribution: null,
       actualContribution: null,
       reason: null,
+      monthlyIncome: null,
+      monthlyExpenses: null,
+    });
+  });
+
+  it("moves version 6 savings records to the monthly money-check schema", () => {
+    const plan = importBackup(JSON.stringify({
+      schemaVersion: 6,
+      id: "version-six-plan",
+      name: "월 저축 기록",
+      savedAt: "2026-07-20T00:00:00.000Z",
+      goalAmount: 100_000_000,
+      currentAmount: 31_000_000,
+      monthlyContribution: 1_000_000,
+      annualRate: 0,
+      targetDate: "2031-07",
+      arrivalDate: "2032-04-01T00:00:00.000Z",
+      projectedAtTarget: 91_000_000,
+      shortage: 9_000_000,
+      actionPlan: { id: "monthly", title: "매달 나눠 채우기", monthlyContribution: 1_170_000, upfrontAmount: 0, adjustedTargetDate: "2031-07" },
+      completedActionSteps: [],
+      feasibilityLimits: null,
+      checkins: [{
+        date: "2026-07-20T00:00:00.000Z",
+        period: "2026-07",
+        plannedContribution: 1_170_000,
+        actualContribution: 1_200_000,
+        reason: "saved-more",
+        currentAmount: 31_200_000,
+        projectedAtTarget: 91_200_000,
+        shortage: 8_800_000,
+        shortageDifference: 200_000,
+        completedActionSteps: [],
+        memo: "",
+      }],
+    }));
+
+    expect(plan.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(plan.checkins[0]).toMatchObject({
+      actualContribution: 1_200_000,
+      monthlyIncome: null,
+      monthlyExpenses: null,
     });
   });
 });
