@@ -1,6 +1,6 @@
 import {
-  GUIDE_MODIFIED_DATE,
-  GUIDE_PUBLISHED_DATE,
+  getGuideModifiedDate,
+  getGuidePublishedDate,
   type Guide,
 } from "@/content/guides";
 import { absoluteUrl, SITE_NAME, SITE_URL, SOCIAL_IMAGE } from "@/lib/seo/site";
@@ -127,8 +127,8 @@ export function createGuideStructuredData(guide: Guide): Record<string, unknown>
         url,
         mainEntityOfPage: { "@id": `${url}#webpage` },
         image: SOCIAL_IMAGE.url,
-        datePublished: GUIDE_PUBLISHED_DATE,
-        dateModified: GUIDE_MODIFIED_DATE,
+        datePublished: getGuidePublishedDate(guide),
+        dateModified: getGuideModifiedDate(guide),
         inLanguage: "ko-KR",
         author: { "@id": organizationId },
         publisher: { "@id": organizationId },

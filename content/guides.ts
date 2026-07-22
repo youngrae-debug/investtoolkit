@@ -3,6 +3,10 @@ export interface Guide {
   title: string;
   description: string;
   eyebrow: string;
+  publishedDate?: string;
+  modifiedDate?: string;
+  readingMinutes?: number;
+  relatedSlugs?: string[];
   intro: string;
   exampleTitle: string;
   example: string;
@@ -59,6 +63,7 @@ export const guides: Guide[] = [
       { question: "중간에 보너스를 받으면 어떻게 계산하나요?", answer: "조건 바꿔보기에서 일회성 추가 자금으로 비교할 수 있습니다." },
     ],
     preset: "/money-gps?preset=monthly-500k-to-100m",
+    relatedSlugs: ["monthly-1m-to-100m", "current-30m-to-100m", "why-zero-return-baseline"],
   },
   {
     slug: "monthly-1m-to-100m",
@@ -93,6 +98,7 @@ export const guides: Guide[] = [
       { question: "수익률은 몇 퍼센트로 넣어야 하나요?", answer: "특정 값을 추천하지 않습니다. 먼저 0% 결과를 보고 여러 가정의 시간 차이만 비교하세요." },
     ],
     preset: "/money-gps?preset=monthly-1m-to-100m",
+    relatedSlugs: ["monthly-500k-to-100m", "current-30m-to-100m", "money-goal-calculator-guide"],
   },
   {
     slug: "current-30m-to-100m",
@@ -127,6 +133,7 @@ export const guides: Guide[] = [
       { question: "중간에 3,000만 원짜리 자동차를 사면요?", answer: "해당 시점의 일회성 지출로 적용해 목표일 지연과 자금 부족 여부를 비교할 수 있습니다." },
     ],
     preset: "/money-gps?preset=current-30m-to-100m",
+    relatedSlugs: ["monthly-1m-to-100m", "car-purchase-impact", "bonus-5m"],
   },
   {
     slug: "cut-expenses-200k",
@@ -161,6 +168,7 @@ export const guides: Guide[] = [
       { question: "몇 달만 줄이는 것도 계산되나요?", answer: "조건의 시작과 종료 기간을 정해 한시적인 변화로 비교할 수 있습니다." },
     ],
     preset: "/money-gps?preset=cut-expenses-200k",
+    relatedSlugs: ["monthly-1m-to-100m", "bonus-5m", "money-goal-calculator-guide"],
   },
   {
     slug: "bonus-5m",
@@ -195,6 +203,7 @@ export const guides: Guide[] = [
       { question: "아직 확정되지 않은 보너스도 넣어도 되나요?", answer: "기준 계획과 분리된 비교 조건으로만 확인하는 편이 좋습니다." },
     ],
     preset: "/money-gps?preset=bonus-5m",
+    relatedSlugs: ["current-30m-to-100m", "cut-expenses-200k", "car-purchase-impact"],
   },
   {
     slug: "car-purchase-impact",
@@ -229,9 +238,101 @@ export const guides: Guide[] = [
       { question: "자동차를 사면 안 된다는 뜻인가요?", answer: "아닙니다. 제품은 금융 선택을 권고하지 않고 목표일의 시간 차이만 계산합니다." },
     ],
     preset: "/money-gps?preset=car-30m",
+    relatedSlugs: ["current-30m-to-100m", "bonus-5m", "money-goal-calculator-guide"],
+  },
+  {
+    slug: "why-zero-return-baseline",
+    title: "돈 목표 계산을 수익률 0%부터 봐야 하는 이유",
+    description: "투자수익을 먼저 가정하지 않고 현재 자산과 월 적립액만으로 목표 부족분을 확인한 뒤 수익률 가정을 비교해야 하는 이유를 설명합니다.",
+    eyebrow: "계산 기준 가이드",
+    publishedDate: "2026-07-23",
+    modifiedDate: "2026-07-23",
+    readingMinutes: 6,
+    intro: "높은 수익률을 넣으면 목표 날짜의 예상 금액은 커지고 부족분은 작아집니다. 하지만 미래 수익률은 사용자가 정한다고 실현되는 값이 아닙니다. INVETK Money GPS는 현재 자산과 월 적립액처럼 직접 확인하고 조정할 수 있는 숫자부터 보기 위해 첫 결과를 연 수익률 0% 원금 기준으로 계산합니다.",
+    exampleTitle: "월 30만 원을 10년간 모으면",
+    example: "현재 자산 0원에서 매달 말 30만 원씩 120개월을 모으면 수익률 0% 기준 원금은 3,600만 원입니다. 같은 납입 조건에 연 2%를 가정하면 약 3,978만 원, 연 4%를 가정하면 약 4,401만 원입니다. 뒤의 두 값은 가능성을 비교하는 가정이고, 3,600만 원은 납입 계획 자체를 점검하는 기준선입니다.",
+    sections: [
+      { title: "직접 통제할 수 있는 숫자를 먼저 봅니다", body: "현재 목표에 사용할 수 있는 자산, 매달 실제로 남길 수 있는 돈, 목표 날짜는 사용자가 확인하고 조정할 수 있습니다. 반면 미래 시장 수익률은 확정할 수 없습니다. 원금 기준을 먼저 보면 목표 달성에 투자수익이 얼마나 필요한 계획인지, 지금 적립액만으로도 가능한 계획인지 구분할 수 있습니다." },
+      { title: "수익률은 예측값이 아니라 민감도 가정입니다", body: "수익률을 적용하는 기능 자체가 잘못된 것은 아닙니다. 중요한 것은 한 값을 정답처럼 받아들이지 않는 것입니다. 0%, 2%, 4%처럼 여러 조건을 비교하면 수익률 가정이 바뀔 때 목표일까지의 부족분이 얼마나 달라지는지 볼 수 있습니다. INVETK는 특정 수익률을 추천하지 않습니다." },
+      { title: "세금·수수료·물가를 함께 기억해야 합니다", body: "계산기의 수익률은 세금과 수수료를 차감하기 전의 단순한 혼합 가정이며, 물가에 따른 목표 금액 변화도 자동으로 반영하지 않습니다. 기간이 길수록 이 차이는 커질 수 있습니다. 첫 결과를 기준선으로 사용하고, 실제 계획에서는 비용과 목표 금액을 정기적으로 다시 확인해야 합니다." },
+    ],
+    comparison: {
+      title: "월 30만 원·10년 적립의 수익률별 차이",
+      description: "현재 자산 0원, 매월 말 30만 원 납입, 120개월 유지 조건에서 연 수익률 가정만 바꾼 단순 비교입니다.",
+      rows: [
+        { condition: "연 0%", result: "3,600만 원", meaning: "내가 납입하는 원금만 확인하는 기준선" },
+        { condition: "연 2% 가정", result: "약 3,978만 원", meaning: "원금보다 약 378만 원 큰 민감도 결과" },
+        { condition: "연 4% 가정", result: "약 4,401만 원", meaning: "원금보다 약 801만 원 크지만 보장되지 않음" },
+      ],
+    },
+    checklist: [
+      "0% 결과만으로 목표 날짜의 부족분이 얼마인지 먼저 확인합니다.",
+      "수익률을 적용할 때는 한 값이 아니라 여러 조건의 차이를 비교합니다.",
+      "세금·수수료·물가를 제외한 단순 계산이라는 점을 계획에 표시합니다.",
+    ],
+    faq: [
+      { question: "수익률 0%는 너무 보수적인 계산 아닌가요?", answer: "미래를 예측하는 값이 아니라 현재 적립 계획만 확인하는 기준선입니다. 이후에 다른 수익률 가정을 별도로 비교할 수 있습니다." },
+      { question: "연 4%를 넣으면 실제로 그 금액이 되나요?", answer: "아닙니다. 수익률, 세금, 수수료와 납입 시점이 달라지면 실제 결과도 달라집니다." },
+      { question: "물가 상승은 계산에 포함되나요?", answer: "기본 계산에는 자동 반영하지 않습니다. 장기 목표라면 목표 금액 자체를 주기적으로 다시 점검해야 합니다." },
+    ],
+    preset: "/money-gps",
+    relatedSlugs: ["money-goal-calculator-guide", "monthly-500k-to-100m", "monthly-1m-to-100m"],
+  },
+  {
+    slug: "money-goal-calculator-guide",
+    title: "돈 목표 계산기, 이렇게 사용하세요",
+    description: "목표 금액과 날짜, 현재 자산, 월 적립액으로 목표일의 예상 부족분을 계산하고 세 가지 해결안을 비교하는 방법을 안내합니다.",
+    eyebrow: "Money GPS 사용 가이드",
+    publishedDate: "2026-07-23",
+    modifiedDate: "2026-07-23",
+    readingMinutes: 7,
+    intro: "돈 목표를 세울 때 필요한 것은 미래 금액 하나가 아니라 원하는 날짜에 도착할 수 있는지, 얼마가 부족한지, 무엇을 바꾸면 되는지에 대한 답입니다. Money GPS는 세 단계 입력으로 원금 기준 부족분을 계산하고 월 적립 확대·시작 자금 추가·기간 조정의 세 가지 경로를 함께 보여줍니다.",
+    exampleTitle: "5년 안에 1억 원을 만들고 싶다면",
+    example: "현재 3,000만 원이고 매달 100만 원을 60개월 모으면 수익률 0% 기준 예상 자산은 9,000만 원입니다. 목표 1억 원까지 1,000만 원이 부족합니다. 이 부족분은 실패 판정이 아니라 월 적립액을 약 16만 7천 원 늘리거나, 시작 자금 1,000만 원을 더하거나, 현재 속도를 유지하며 목표 날짜를 약 10개월 조정하는 비교의 출발점입니다.",
+    sections: [
+      { title: "입력은 세 단계로 끝납니다", body: "첫 단계에서 언제까지 얼마를 만들고 싶은지 입력하고, 두 번째 단계에서 지금까지 모은 돈을 적습니다. 마지막으로 매달 모을 수 있는 돈을 입력합니다. 월 적립액을 정확히 모른다면 월급에서 생활비와 대출 상환액을 빼는 방식으로 계산할 수 있습니다." },
+      { title: "부족분 다음에 세 가지 경로를 비교합니다", body: "목표일에 돈이 부족하면 월 적립액만 무리하게 늘리는 대신 세 방향을 함께 봅니다. 매달 모을 돈을 늘리는 경로, 월 부담과 시작 자금을 나누는 경로, 현재 적립 속도를 유지하고 날짜를 조정하는 경로입니다. 어떤 경로가 더 나은지는 사용자의 현금흐름과 목표의 유연성에 따라 달라집니다." },
+      { title: "계산한 뒤 이번 달 행동으로 바꿉니다", body: "선택한 경로는 자동이체 금액 설정, 시작 자금 반영, 월말 잔액 확인 같은 이번 달 행동으로 이어집니다. 계획 저장은 사용자가 직접 선택한 경우에만 현재 브라우저에 보관되며, 목표 금액·자산·월급·지출은 서버나 분석 이벤트로 전송하지 않습니다." },
+    ],
+    comparison: {
+      title: "현재 3,000만 원에서 5년 뒤 1억 원 목표",
+      description: "연 수익률 0%, 매월 말 납입, 중간 수입·지출 변화 없음으로 계산한 세 가지 조정 방향입니다.",
+      rows: [
+        { condition: "월 100만 원 유지", result: "5년 뒤 9,000만 원", meaning: "목표일까지 1,000만 원 부족" },
+        { condition: "월 약 116만 7천 원", result: "5년 뒤 약 1억 원", meaning: "월 적립액을 약 16만 7천 원 늘림" },
+        { condition: "월 100만 원·기간 조정", result: "약 5년 10개월", meaning: "현재 속도를 유지하고 날짜를 약 10개월 늦춤" },
+      ],
+    },
+    checklist: [
+      "목표 날짜와 금액이 실제 생활 목적에 맞는지 먼저 확인합니다.",
+      "현재 자산에는 목표에 실제로 사용할 수 있는 돈만 포함합니다.",
+      "가장 빠른 경로보다 이번 달부터 유지할 수 있는 경로를 선택합니다.",
+    ],
+    faq: [
+      { question: "회원가입 없이 사용할 수 있나요?", answer: "네. 기본 계산과 조건 비교는 회원가입 없이 현재 브라우저에서 사용할 수 있습니다." },
+      { question: "월 적립액을 정확히 모르면 어떻게 하나요?", answer: "월급과 생활비, 대출 상환액을 입력해 매달 남길 수 있는 금액을 계산할 수 있습니다." },
+      { question: "계산 결과가 금융상품 추천인가요?", answer: "아닙니다. 입력값과 가정을 바탕으로 시간과 부족분을 비교하며 특정 상품이나 투자 행동을 권유하지 않습니다." },
+    ],
+    preset: "/money-gps",
+    relatedSlugs: ["why-zero-return-baseline", "monthly-1m-to-100m", "current-30m-to-100m"],
   },
 ];
 
 export function getGuide(slug: string): Guide | undefined {
   return guides.find((guide) => guide.slug === slug);
+}
+
+export function getGuidePublishedDate(guide: Guide): string {
+  return guide.publishedDate ?? GUIDE_PUBLISHED_DATE;
+}
+
+export function getGuideModifiedDate(guide: Guide): string {
+  return guide.modifiedDate ?? GUIDE_MODIFIED_DATE;
+}
+
+export function getRelatedGuides(guide: Guide): Guide[] {
+  const relatedSlugs = guide.relatedSlugs ?? [];
+  return relatedSlugs
+    .map((slug) => getGuide(slug))
+    .filter((item): item is Guide => item !== undefined && item.slug !== guide.slug);
 }

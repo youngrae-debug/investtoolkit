@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import manifest from "@/app/manifest";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
-import { GUIDE_MODIFIED_DATE, GUIDE_PUBLISHED_DATE, guides } from "@/content/guides";
+import {
+  getGuideModifiedDate,
+  getRelatedGuides,
+  GUIDE_MODIFIED_DATE,
+  GUIDE_PUBLISHED_DATE,
+  guides,
+} from "@/content/guides";
 import {
   absoluteUrl,
   createPageMetadata,
@@ -105,6 +111,18 @@ describe("structured data", () => {
       ]),
     });
   });
+
+  it("uses each new guide's own publication dates", () => {
+    const guide = guides.find((item) => item.slug === "why-zero-return-baseline");
+    expect(guide).toBeDefined();
+
+    const data = createGuideStructuredData(guide!);
+    const graph = data["@graph"] as Array<Record<string, unknown>>;
+    expect(graph.find((item) => item["@type"] === "Article")).toMatchObject({
+      datePublished: "2026-07-23",
+      dateModified: "2026-07-23",
+    });
+  });
 });
 
 describe("guide content depth", () => {
@@ -117,6 +135,15 @@ describe("guide content depth", () => {
       expect(guide.comparison.rows).toHaveLength(3);
       expect(guide.checklist).toHaveLength(3);
       expect(new Set(guide.comparison.rows.map((row) => row.condition)).size).toBe(3);
+    }
+  });
+
+  it("connects every guide to three valid, unique related guides", () => {
+    for (const guide of guides) {
+      const relatedGuides = getRelatedGuides(guide);
+      expect(relatedGuides).toHaveLength(3);
+      expect(new Set(relatedGuides.map((item) => item.slug)).size).toBe(3);
+      expect(relatedGuides.every((item) => item.slug !== guide.slug)).toBe(true);
     }
   });
 });
@@ -134,7 +161,13 @@ describe("crawler discovery files", () => {
     }
     expect(
       entries.find((entry) => entry.url === absoluteUrl(`/guides/${guides[0].slug}`))?.lastModified,
-    ).toEqual(new Date(GUIDE_MODIFIED_DATE));
+    ).toEqual(new Date(getGuideModifiedDate(guides[0])));
+
+    const newestGuide = guides.find((guide) => guide.slug === "money-goal-calculator-guide");
+    expect(newestGuide).toBeDefined();
+    expect(
+      entries.find((entry) => entry.url === absoluteUrl(`/guides/${newestGuide!.slug}`))?.lastModified,
+    ).toEqual(new Date(getGuideModifiedDate(newestGuide!)));
   });
 
   it("points crawlers at the canonical host and sitemap", () => {

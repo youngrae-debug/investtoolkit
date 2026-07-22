@@ -7,8 +7,9 @@ import { JsonLd } from "@/components/seo/json-ld";
 import {
   formatGuideDate,
   getGuide,
-  GUIDE_MODIFIED_DATE,
-  GUIDE_PUBLISHED_DATE,
+  getGuideModifiedDate,
+  getGuidePublishedDate,
+  getRelatedGuides,
   guides,
 } from "@/content/guides";
 import { ADSENSE_CONFIGURED } from "@/lib/ads/config";
@@ -23,13 +24,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const guide = getGuide(slug);
   if (!guide) return {};
+  const publishedDate = getGuidePublishedDate(guide);
+  const modifiedDate = getGuideModifiedDate(guide);
   return createPageMetadata({
     title: guide.title,
     description: guide.description,
     path: `/guides/${guide.slug}`,
     article: {
-      publishedTime: GUIDE_PUBLISHED_DATE,
-      modifiedTime: GUIDE_MODIFIED_DATE,
+      publishedTime: publishedDate,
+      modifiedTime: modifiedDate,
     },
   });
 }
@@ -39,6 +42,8 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   const guide = getGuide(slug);
   if (!guide) notFound();
   const structuredData = createGuideStructuredData(guide);
+  const modifiedDate = getGuideModifiedDate(guide);
+  const relatedGuides = getRelatedGuides(guide);
 
   return (
     <main id="main-content" className="content-page article-page">
@@ -48,7 +53,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         <span className="section-kicker">{guide.eyebrow}</span>
         <h1>{guide.title}</h1>
         <p>{guide.intro}</p>
-        <small>INVETK 편집 · 최종 업데이트 {formatGuideDate(GUIDE_MODIFIED_DATE)} · 약 8분 · <Link href="/methodology">계산 기준</Link></small>
+        <small>INVETK 편집 · 최종 업데이트 {formatGuideDate(modifiedDate)} · 약 {guide.readingMinutes ?? 8}분 · <Link href="/methodology">계산 기준</Link></small>
       </header>
       <article className="article-body">
         <section className="example-box"><span>계산 예시</span><h2>{guide.exampleTitle}</h2><p>{guide.example}</p></section>
@@ -75,6 +80,21 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
           <ul>{guide.checklist.map((item) => <li key={item}>{item}</li>)}</ul>
         </section>
         <section><h2>자주 묻는 질문</h2><div className="faq-list">{guide.faq.map((item) => <details key={item.question}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div></section>
+        {relatedGuides.length > 0 ? (
+          <nav className="related-guides" aria-labelledby="related-guides-title">
+            <span className="section-kicker">다음으로 읽기</span>
+            <h2 id="related-guides-title">이 목표와 함께 보면 좋은 가이드</h2>
+            <div className="related-guides__grid">
+              {relatedGuides.map((relatedGuide) => (
+                <Link href={`/guides/${relatedGuide.slug}`} key={relatedGuide.slug}>
+                  <span>{relatedGuide.eyebrow}</span>
+                  <strong>{relatedGuide.title}</strong>
+                  <small>가이드 읽기 <span aria-hidden="true">→</span></small>
+                </Link>
+              ))}
+            </div>
+          </nav>
+        ) : null}
         <div className="article-cta"><span>내 숫자로 확인하기</span><h2>세 가지 금액만 입력해 보세요</h2><p>첫 결과는 수익률 0% 원금 기준으로 계산합니다.</p><Link className="button button--primary" href={guide.preset}>내 목표일 계산하기</Link></div>
         <p className="article-disclaimer">이 글의 계산은 이해를 돕기 위한 예시이며 금융상품이나 투자 행동을 추천하지 않습니다. 실제 세금, 수수료, 물가와 시장 수익률은 다를 수 있습니다. <Link href="/methodology">계산 기준 자세히 보기</Link></p>
       </article>
