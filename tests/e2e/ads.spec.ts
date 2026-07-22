@@ -67,6 +67,7 @@ test("loads one non-personalized responsive ad only after explicit consent", asy
   await page.getByRole("checkbox", { name: "가이드 비개인화 광고 허용" }).check();
   await page.getByRole("button", { name: "선택 저장", exact: true }).click();
 
+  await page.getByRole("complementary", { name: "광고" }).scrollIntoViewIfNeeded();
   const ad = page.locator("ins.adsbygoogle");
   await expect(ad).toHaveCount(1);
   await expect(ad).toHaveAttribute("data-ad-client", clientId);

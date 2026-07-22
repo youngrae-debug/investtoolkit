@@ -13,12 +13,7 @@ import { GLOBAL_STRUCTURED_DATA } from "@/lib/seo/structured-data";
 import { ADSENSE_CLIENT_ID } from "@/lib/ads/config";
 import "./globals.css";
 
-const metadataBase = process.env.NODE_ENV === "production"
-  ? new URL(SITE_URL)
-  : new URL("http://localhost:3000");
-
 export const metadata: Metadata = {
-  metadataBase,
   applicationName: SITE_NAME,
   title: {
     default: "INVETK Money GPS | 목표 금액 부족분 계산기",
@@ -30,8 +25,6 @@ export const metadata: Metadata = {
   publisher: "INVETK",
   category: "finance",
   alternates: { canonical: SITE_URL },
-  icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
-  manifest: "/manifest.webmanifest",
   formatDetection: { telephone: false, address: false, email: false },
   other: ADSENSE_CLIENT_ID
     ? { "google-adsense-account": ADSENSE_CLIENT_ID }
@@ -67,6 +60,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
+      </head>
       <body>
         <JsonLd data={GLOBAL_STRUCTURED_DATA} />
         <a className="skip-link" href="#main-content">본문으로 건너뛰기</a>

@@ -44,7 +44,7 @@ function setGoogleAnalyticsDisabled(disabled: boolean) {
   (window as unknown as Record<string, unknown>)[`ga-disable-${GOOGLE_ANALYTICS_ID}`] = disabled;
 }
 
-function initializeGoogleTag() {
+function initializeGoogleTagQueue() {
   window.dataLayer ??= [];
   window.gtag ??= function gtag() {
     // Google의 공식 gtag 스니펫과 같은 arguments 큐 형식을 사용합니다.
@@ -54,11 +54,15 @@ function initializeGoogleTag() {
 
   window.gtag("js", new Date());
   window.gtag("config", GOOGLE_ANALYTICS_ID, { send_page_view: false });
+}
 
+function loadGoogleTagScript() {
   if (!document.getElementById(GOOGLE_TAG_SCRIPT_ID)) {
     const script = document.createElement("script");
     script.id = GOOGLE_TAG_SCRIPT_ID;
     script.async = true;
+    script.crossOrigin = "anonymous";
+    script.referrerPolicy = "strict-origin-when-cross-origin";
     script.src = `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`;
     document.head.appendChild(script);
   }
@@ -105,9 +109,22 @@ export function GoogleAnalytics() {
 
     setGoogleAnalyticsDisabled(false);
     if (!initializedRef.current) {
-      initializeGoogleTag();
+      initializeGoogleTagQueue();
       initializedRef.current = true;
     }
+
+    const loadScript = () => loadGoogleTagScript();
+    const idleApi = window as unknown as {
+      requestIdleCallback?: Window["requestIdleCallback"];
+      cancelIdleCallback?: Window["cancelIdleCallback"];
+    };
+    if (idleApi.requestIdleCallback && idleApi.cancelIdleCallback) {
+      const idleId = idleApi.requestIdleCallback(loadScript, { timeout: 1_500 });
+      return () => idleApi.cancelIdleCallback?.(idleId);
+    }
+
+    const timeoutId = window.setTimeout(loadScript, 1_000);
+    return () => window.clearTimeout(timeoutId);
   }, [consent, hydrated]);
 
   useEffect(() => {
@@ -156,7 +173,7 @@ export function GoogleAnalytics() {
           <p>
             분석과 가이드 광고는 모두 선택 사항입니다. 광고를 허용해도 개인 맞춤 광고는 요청하지 않으며,
             목표 금액·자산·월급·지출·메모는 보내지 않습니다.
-            {" "}<Link href="/privacy">자세히 보기</Link>
+            {" "}<Link href="/privacy">개인정보 처리 방식 보기</Link>
           </p>
           <div className="analytics-consent__choices">
             <label>
@@ -198,7 +215,7 @@ export function GoogleAnalytics() {
         <p>
           허용하면 방문한 페이지와 이용 흐름만 Google Analytics로 확인합니다.
           목표 금액·자산·월급·지출·메모는 보내지 않습니다.
-          {" "}<Link href="/privacy">자세히 보기</Link>
+          {" "}<Link href="/privacy">개인정보 처리 방식 보기</Link>
         </p>
       </div>
       <div className="analytics-consent__actions">

@@ -37,6 +37,8 @@ export function GuideAd() {
   const [consent, setConsent] = useState<AdConsent | null>(() => (
     typeof window === "undefined" ? null : readAdConsent()
   ));
+  const [nearViewport, setNearViewport] = useState(false);
+  const containerRef = useRef<HTMLElement>(null);
   const requestedRef = useRef(false);
 
   useEffect(() => {
@@ -54,7 +56,25 @@ export function GuideAd() {
   }, []);
 
   useEffect(() => {
-    if (!ADSENSE_CONFIGURED || consent !== "granted" || requestedRef.current) return;
+    if (!ADSENSE_CONFIGURED || consent !== "granted") return;
+
+    const container = containerRef.current;
+    if (!container || !("IntersectionObserver" in window)) {
+      setNearViewport(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setNearViewport(true);
+      observer.disconnect();
+    }, { rootMargin: "600px 0px" });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [consent]);
+
+  useEffect(() => {
+    if (!ADSENSE_CONFIGURED || consent !== "granted" || !nearViewport || requestedRef.current) return;
 
     const queue = window.adsbygoogle ?? [];
     queue.requestNonPersonalizedAds = 1;
@@ -65,27 +85,30 @@ export function GuideAd() {
       script.id = ADSENSE_SCRIPT_ID;
       script.async = true;
       script.crossOrigin = "anonymous";
+      script.referrerPolicy = "strict-origin-when-cross-origin";
       script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`;
       document.head.appendChild(script);
     }
 
     queue.push({});
     requestedRef.current = true;
-  }, [consent]);
+  }, [consent, nearViewport]);
 
   if (!hydrated || !ADSENSE_CONFIGURED || consent !== "granted") return null;
 
   return (
-    <aside className="guide-ad" aria-label="광고">
+    <aside ref={containerRef} className="guide-ad" aria-label="광고">
       <span className="guide-ad__label">광고</span>
-      <ins
-        className="adsbygoogle"
-        style={AD_CONTAINER_STYLE}
-        data-ad-client={ADSENSE_CLIENT_ID ?? undefined}
-        data-ad-slot={ADSENSE_GUIDE_SLOT_ID ?? undefined}
-        data-ad-format="auto"
-        data-full-width-responsive="true"
-      />
+      {nearViewport && (
+        <ins
+          className="adsbygoogle"
+          style={AD_CONTAINER_STYLE}
+          data-ad-client={ADSENSE_CLIENT_ID ?? undefined}
+          data-ad-slot={ADSENSE_GUIDE_SLOT_ID ?? undefined}
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+      )}
     </aside>
   );
 }

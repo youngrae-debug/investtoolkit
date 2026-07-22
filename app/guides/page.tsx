@@ -6,7 +6,7 @@ import { createGuidesCollectionStructuredData } from "@/lib/seo/structured-data"
 
 const title = "1억 모으기·자산 목표 계산 가이드";
 const description =
-  "월 50만 원·100만 원으로 1억 모으는 기간과 현재 자산, 생활비 절약, 보너스, 자동차 구매가 목표일에 미치는 영향을 계산합니다.";
+  "월 적립액으로 1억 모으는 기간, 돈 목표 계산기 사용법, 수익률 0% 기준과 생활비·보너스·자동차 구매가 목표일에 미치는 영향을 설명합니다.";
 
 export const metadata = createPageMetadata({ title, description, path: "/guides" });
 
@@ -19,7 +19,7 @@ export default function GuidesPage() {
       <header className="content-hero">
         <span className="section-kicker">Money GPS 가이드</span>
         <h1>돈에 관한 질문을<br />시간으로 풀어봅니다</h1>
-        <p>특정 상품을 추천하지 않고, 원금 기준부터 차근차근 계산합니다.</p>
+        <p>내 숫자로 직접 확인할 수 있도록 원금 기준과 실제 계산 예시부터 설명합니다.</p>
       </header>
       <div className="guide-grid">
         {guides.map((guide, index) => (

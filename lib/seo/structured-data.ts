@@ -1,4 +1,8 @@
-import type { Guide } from "@/content/guides";
+import {
+  getGuideModifiedDate,
+  getGuidePublishedDate,
+  type Guide,
+} from "@/content/guides";
 import { absoluteUrl, SITE_NAME, SITE_URL, SOCIAL_IMAGE } from "@/lib/seo/site";
 
 const organizationId = `${SITE_URL}/#organization`;
@@ -123,8 +127,8 @@ export function createGuideStructuredData(guide: Guide): Record<string, unknown>
         url,
         mainEntityOfPage: { "@id": `${url}#webpage` },
         image: SOCIAL_IMAGE.url,
-        datePublished: "2026-07-15",
-        dateModified: "2026-07-15",
+        datePublished: getGuidePublishedDate(guide),
+        dateModified: getGuideModifiedDate(guide),
         inLanguage: "ko-KR",
         author: { "@id": organizationId },
         publisher: { "@id": organizationId },
